@@ -94,15 +94,6 @@ parts:
       - -DCMAKE_INSTALL_PREFIX=/usr
     after: [base]
 
-  # FIXME: this should be replaced with libwebkit2gtk
-  webkitgtk3:
-    plugin: nil
-    override-pull: |
-      echo "deb http://ru.archive.ubuntu.com/ubuntu/ bionic main universe" >> /etc/apt/sources.list
-      apt-get update
-      apt-get install -y libwebkitgtk-3.0-dev
-    after: [base]
-
   player:
     source: player
     plugin: cmake
@@ -118,7 +109,7 @@ parts:
       - libboost1.70
       - libgtkmm-3.0-1v5
       - libcanberra-gtk3-module
-      - libwebkitgtk-3.0-0
+      - libwebkit2gtk-4.0-37
       - libgpm2 # gstreamer warning
       - libslang2 # gstreamer warning
       - gstreamer1.0-plugins-good
@@ -128,7 +119,8 @@ parts:
       - gstreamer1.0-gtk3
       - libspdlog1
     build-packages:
-      - libgtkmm-3.0-dev 
+      - libgtkmm-3.0-dev
+      - libwebkit2gtk-4.0-dev
       - libglibmm-2.4-dev
       - libzmq3-dev
       - libspdlog-dev
@@ -137,4 +129,4 @@ parts:
       - libgstreamer-plugins-good1.0-dev
       - libgstreamer-plugins-base1.0-dev
       - libgstreamer1.0-dev
-    after: [webkitgtk3, boost, date-tz, sqlite-orm] 
+    after: [boost, date-tz, sqlite-orm] 
