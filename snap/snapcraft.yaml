@@ -38,13 +38,6 @@ parts:
   base:
     plugin: nil
     build-packages:
-      - software-properties-common
-      - apt-transport-https
-      - ca-certificates 
-      - gnupg 
-      - curl 
-      - wget
-      - unzip
       - libxss-dev
       - libssl-dev
       - cmake
