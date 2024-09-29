@@ -5,8 +5,6 @@
 #include "common/parsing/XmlDefaultFileHandler.hpp"
 #include "common/parsing/XmlFileLoaderMissingRoot.hpp"
 
-#include <iostream>
-
 template <typename Settings>
 class SettingsSerializer : public XmlDefaultFileHandler
 {

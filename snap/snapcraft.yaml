@@ -1,5 +1,5 @@
 name: xibo-player
-base: core20
+base: core22
 version: 1.8-R7
 summary: Xibo Linux Player
 description: Xibo for Linux Digital Signage Player
@@ -20,19 +20,19 @@ apps:
     command: usr/bin/snap_run.sh xibo-watchdog
     plugs: [gsettings, network, network-status, home, audio-playback, screen-inhibit-control, framebuffer, opengl]
     slots: [dbus-daemon]
-    extensions: [gnome-3-38]
+    extensions: [gnome]
 
   disabled-watchdog:
     command: usr/bin/snap_run.sh xibo-watchdog --disable-restart
     plugs: [gsettings, network, network-status, home, audio-playback, screen-inhibit-control, framebuffer, opengl]
     slots: [dbus-daemon]
-    extensions: [gnome-3-38]
+    extensions: [gnome]
 
   options:
     command: usr/bin/xibo-options
     plugs: [gsettings, network, network-status, home]
     slots: [dbus-daemon]
-    extensions: [gnome-3-38]
+    extensions: [gnome]
 
 parts:
   base:
@@ -74,11 +74,11 @@ parts:
       - -DCMAKE_PREFIX_PATH=$SNAPCRAFT_STAGE/usr
       - -DCMAKE_INSTALL_PREFIX=/usr
     stage-packages:
-      - libboost-date-time1.71.0
-      - libboost-filesystem1.71.0
-      - libboost-program-options1.71.0
-      - libboost-thread1.71.0
-      - libcrypto++6
+      - libboost-date-time1.74.0
+      - libboost-filesystem1.74.0
+      - libboost-program-options1.74.0
+      - libboost-thread1.74.0
+      - libcrypto++8
       - libwebkit2gtk-4.0-37
       - libglu1-mesa
       - freeglut3
@@ -87,6 +87,7 @@ parts:
       - libcanberra-gtk3-module
       - libgpm2 # gstreamer warning
       - libslang2 # gstreamer warning
+      - gstreamer1.0-plugins-bad
       - gstreamer1.0-plugins-good
       - gstreamer1.0-plugins-base
       - gstreamer1.0-gl
@@ -94,7 +95,7 @@ parts:
       - gstreamer1.0-gtk3
       - libspdlog1
     build-packages:
-      - libboost1.71-all-dev
+      - libboost1.74-all-dev
       - libcrypto++-dev
       - libwebkit2gtk-4.0-dev
       - libgtkmm-3.0-dev
@@ -103,6 +104,7 @@ parts:
       - libspdlog-dev
       - libgtest-dev
       - libgmock-dev
+      - libgstreamer-plugins-bad1.0-dev
       - libgstreamer-plugins-good1.0-dev
       - libgstreamer-plugins-base1.0-dev
       - libgstreamer1.0-dev
