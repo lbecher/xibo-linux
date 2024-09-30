@@ -36,6 +36,14 @@ inline void HardwareKeyGenerator::nativeCpuid(unsigned int* eax,
                                               unsigned int* ecx,
                                               unsigned int* edx)
 {
+#if    defined(__i386__)    \
+    || defined(i386)        \
+    || defined(_M_IX86)     \
+    || defined(_X86_)       \
+    || defined(__THW_INTEL) \
+    || defined(__x86_64__)  \
+    || defined(_M_X64)
     asm volatile("cpuid" : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx) : "0"(*eax), "2"(*ecx) : "memory");
+#endif
 }
 
