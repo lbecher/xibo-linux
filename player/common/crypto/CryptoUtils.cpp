@@ -27,12 +27,14 @@ RsaKeyPair CryptoUtils::loadRsaKeys(const FilePath& publicKeyPath, const FilePat
 {
     CryptoPP::FileSource fs1{publicKeyPath.c_str(), true};
     CryptoPP::FileSource fs2{privateKeyPath.c_str(), true};
+    
+    CryptoPP::RSA::PublicKey publicKey;
+    CryptoPP::RSA::PrivateKey privateKey;
 
-    RsaKeyPair keys;
-    CryptoPP::PEM_Load(fs1, keys.publicKey);
-    CryptoPP::PEM_Load(fs2, keys.privateKey);
+    publicKey.BERDecode(fs1);
+    privateKey.BERDecode(fs2);
 
-    return keys;
+    return {publicKey, privateKey};
 }
 
 void CryptoUtils::saveRsaKeys(const RsaKeyPair& keys, const FilePath& publicKeyPath, const FilePath& privateKeyPath)
@@ -40,8 +42,8 @@ void CryptoUtils::saveRsaKeys(const RsaKeyPair& keys, const FilePath& publicKeyP
     CryptoPP::FileSink fs1{publicKeyPath.c_str()};
     CryptoPP::FileSink fs2{privateKeyPath.c_str()};
 
-    CryptoPP::PEM_Save(fs1, keys.publicKey);
-    CryptoPP::PEM_Save(fs2, keys.privateKey);
+    keys.publicKey.DEREncode(fs1);
+    keys.privateKey.DEREncode(fs2);
 }
 
 std::string CryptoUtils::decryptPrivateKeyPkcs(const std::string& message, const CryptoPP::RSA::PrivateKey& key)
@@ -70,10 +72,16 @@ std::string CryptoUtils::decryptRc4(const std::string& message, const std::strin
 
 std::string CryptoUtils::toBase64(const std::string& text)
 {
-    return boost::beast::detail::base64_encode(text);
+    std::string base64;
+    base64.resize(boost::beast::detail::base64::encoded_size(text.size()));
+    boost::beast::detail::base64::encode(&base64[0], text.data(), text.size());
+    return base64;
 }
 
 std::string CryptoUtils::fromBase64(const std::string& text)
 {
-    return boost::beast::detail::base64_decode(text);
+    std::string decoded;
+    decoded.resize(boost::beast::detail::base64::decoded_size(text.size()));
+    boost::beast::detail::base64::decode(&decoded[0], text.data(), text.size());
+    return decoded;
 }
