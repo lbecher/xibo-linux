@@ -12,6 +12,7 @@ RUN git clone https://github.com/fnc12/sqlite_orm.git sqlite_orm \
   && cmake --build build --target install
 
 RUN apt install -y \
+  libwebkit2gtk-4.0-dev \
   libgstreamer1.0-dev \
   libgstreamer-plugins-base1.0-dev \
   libgstreamer-plugins-base1.0-0 \
@@ -21,10 +22,6 @@ RUN apt install -y \
   libgtest-dev
 
 ENV DEBIAN_FRONTEND=noninteractive
-
-RUN echo "deb http://cz.archive.ubuntu.com/ubuntu bionic main universe" >> /etc/apt/sources.list \
-  && apt update -y \
-  && apt install -y libwebkitgtk-3.0-dev
 
 RUN apt install -y software-properties-common \
   && add-apt-repository ppa:mhier/libboost-latest \

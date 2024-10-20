@@ -2,7 +2,7 @@
 
 #include "common/types/Uri.hpp"
 
-#include <webkit/webkit.h>
+#include <webkit2/webkit2.h>
 
 namespace ph = std::placeholders;
 
@@ -50,7 +50,12 @@ void WebViewGtk::enableTransparency()
     handler_.signal_screen_changed().connect(std::bind(&WebViewGtk::screenChanged, this, ph::_1));
     screenChanged(handler_.get_screen());
 
-    webkit_web_view_set_transparent(webView_, true);
+    GdkRGBA transparent;
+    transparent.red = 0.0;
+    transparent.green = 0.0;
+    transparent.blue = 0.0;
+    transparent.alpha = 0.0;
+    webkit_web_view_set_background_color(webView_, &transparent);
 }
 
 void WebViewGtk::screenChanged(const Glib::RefPtr<Gdk::Screen>& screen)

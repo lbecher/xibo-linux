@@ -26,19 +26,19 @@
    <insert_a_suppression_name_here>
    Memcheck:Value8
    ...
-   obj:/usr/lib/libwebkitgtk-3.0.so.*
+   obj:/usr/lib/libwebkit2gtk-4.0.so.*
 }
 {
    <insert_a_suppression_name_here>
    Memcheck:Leak
    ...
-   obj:/usr/lib/libwebkitgtk-3.0.so.*
+   obj:/usr/lib/libwebkit2gtk-4.0.so.*
 }
 {
    <insert_a_suppression_name_here>
    Memcheck:Cond
    ...
-   obj:/usr/lib/libwebkitgtk-3.0.so.*
+   obj:/usr/lib/libwebkit2gtk-4.0.so.*
 }
 {
    <insert_a_suppression_name_here>
