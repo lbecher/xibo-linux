@@ -6,8 +6,7 @@ description: Xibo for Linux Digital Signage Player
 grade: stable
 confinement: strict
 
-architectures:
-  - build-on: amd64
+architectures: [amd64, i386, arm64, armhf, powerpv, ppc64el, riscv64, s390x]
 
 slots:
   dbus-daemon: # name this whatever you want
