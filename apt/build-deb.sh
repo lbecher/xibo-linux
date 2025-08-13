@@ -140,14 +140,27 @@ echo "Building .deb package..."
 cd "$PROJECT_ROOT"
 
 # Update control file with correct architecture
+echo "Updating control file architecture from ARCH_PLACEHOLDER to $HOST_ARCH"
 sed -i "s/ARCH_PLACEHOLDER/$HOST_ARCH/g" "$APT_DIR/DEBIAN/control"
+
+# Verify the substitution worked
+if grep -q "Architecture: $HOST_ARCH" "$APT_DIR/DEBIAN/control"; then
+    echo "✅ Architecture updated successfully in control file"
+else
+    echo "❌ Failed to update architecture in control file"
+    echo "Current content:"
+    grep "Architecture:" "$APT_DIR/DEBIAN/control"
+    exit 1
+fi
 
 # Build the package
 PACKAGE_NAME="xibo-player_1.8-R7_${HOST_ARCH}.deb"
+echo "Creating package: $PACKAGE_NAME"
 dpkg-deb --build apt "$PACKAGE_NAME"
 
 # Restore placeholder in control file for next build
-sed -i "s/$HOST_ARCH/ARCH_PLACEHOLDER/g" "$APT_DIR/DEBIAN/control"
+sed -i "s/Architecture: $HOST_ARCH/Architecture: ARCH_PLACEHOLDER/g" "$APT_DIR/DEBIAN/control"
+echo "Architecture placeholder restored in control file"
 
 echo "=== Build completed ==="
 echo "Package created: $PACKAGE_NAME"
