@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+
+# Update desktop icons cache
+if [ -x /usr/bin/update-desktop-database ]; then
+    /usr/bin/update-desktop-database -q /usr/share/applications
+fi
+
+# Update icons cache
+if [ -x /usr/bin/update-icon-caches ]; then
+    /usr/bin/update-icon-caches /usr/share/icons/hicolor
+fi
+
+# Update MIME cache
+if [ -x /usr/bin/update-mime-database ]; then
+    /usr/bin/update-mime-database /usr/share/mime
+fi
+
+# Create log directory if it doesn't exist
+mkdir -p /var/log/xibo
+
+# Set appropriate permissions
+chown -R root:root /usr/bin/xibo-*
+chmod +x /usr/bin/xibo-*
+
+echo "Xibo Player installed successfully!"
+echo "To start the player, run: xibo-player"
+echo "To configure, run: xibo-options"
+
+exit 0
