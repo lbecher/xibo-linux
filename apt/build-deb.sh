@@ -120,6 +120,11 @@ make -j$(nproc)
 
 echo "Installing files to package..."
 
+# Create package directories
+mkdir -p "$APT_DIR/usr/bin"
+mkdir -p "$APT_DIR/usr/share/xibo-player"
+mkdir -p "$APT_DIR/usr/share/icons/hicolor/256x256/apps"
+
 # Copy binaries
 cp bin/xibo-player "$APT_DIR/usr/bin/"
 cp bin/xibo-options "$APT_DIR/usr/bin/"
