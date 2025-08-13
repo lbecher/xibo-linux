@@ -2,7 +2,7 @@
 *.txt.user
 xibo-*.snap*
 gcov
-build*
+/build*
 root
 pch.py
 *.json
