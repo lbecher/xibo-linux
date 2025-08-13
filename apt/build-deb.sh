@@ -9,9 +9,14 @@ BUILD_DIR="$PROJECT_ROOT/build-apt"
 APT_DIR="$SCRIPT_DIR"
 PLAYER_DIR="$PROJECT_ROOT/player"
 
+# Detect host architecture
+HOST_ARCH=$(dpkg --print-architecture)
+echo "Detected architecture: $HOST_ARCH"
+
 echo "=== Building Xibo Player for APT ==="
 echo "Project directory: $PROJECT_ROOT"
 echo "Build directory: $BUILD_DIR"
+echo "Target architecture: $HOST_ARCH"
 
 # Clean previous build
 if [ -d "$BUILD_DIR" ]; then
@@ -135,13 +140,14 @@ echo "Building .deb package..."
 cd "$PROJECT_ROOT"
 
 # Build the package
-dpkg-deb --build apt xibo-player_1.8-R7_amd64.deb
+PACKAGE_NAME="xibo-player_1.8-R7_${HOST_ARCH}.deb"
+dpkg-deb --build apt "$PACKAGE_NAME"
 
 echo "=== Build completed ==="
-echo "Package created: xibo-player_1.8-R7_amd64.deb"
+echo "Package created: $PACKAGE_NAME"
 echo ""
 echo "To install:"
-echo "  sudo dpkg -i xibo-player_1.8-R7_amd64.deb"
+echo "  sudo dpkg -i $PACKAGE_NAME"
 echo "  sudo apt-get install -f  # if there are unsatisfied dependencies"
 echo ""
 echo "To remove:"

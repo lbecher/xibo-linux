@@ -37,18 +37,22 @@ cd apt/
 ./build-deb.sh
 ```
 
-Este script irá:
-- Instalar dependências de build necessárias
-- Construir as bibliotecas de terceiros (date-tz, sqlite-orm)
-- Compilar o Xibo Player
-- Criar o pacote .deb
+This script will:
+- Install build dependencies
+- Build third-party libraries (date-tz, sqlite-orm)
+- Compile Xibo Player for the current architecture
+- Create the .deb package
 
-### 3. Instalar o pacote
+### 3. Install the package
+
+The package name will include the detected architecture:
 
 ```bash
-sudo dpkg -i ../xibo-player_1.8-R7_amd64.deb
-sudo apt-get install -f  # Se houver dependências não satisfeitas
+sudo dpkg -i ../xibo-player_1.8-R7_<architecture>.deb
+sudo apt-get install -f  # If there are unsatisfied dependencies
 ```
+
+Where `<architecture>` can be: amd64, arm64, armhf, i386, riscv64, etc.
 
 ### 4. Executar
 
@@ -105,7 +109,9 @@ sudo apt remove xibo-player
 
 ## Notas
 
-- O pacote criado é específico para a arquitetura amd64
+- O pacote é construído para a arquitetura do host atual (detectada automaticamente)
+- Arquiteturas suportadas: amd64, arm64, armhf, i386, riscv64, e outras
 - O processo de build baixa e compila algumas bibliotecas de terceiros localmente
 - O pacote instala os binários em `/usr/bin/` e os recursos em `/usr/share/xibo-player/`
 - Arquivos de configuração ficam no diretório home do usuário
+- Caminhos do GStreamer são configurados automaticamente baseados na arquitetura alvo
