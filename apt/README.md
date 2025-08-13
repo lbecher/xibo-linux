@@ -38,9 +38,11 @@ cd apt/
 ```
 
 This script will:
+- Detect the host architecture automatically
 - Install build dependencies
 - Build third-party libraries (date-tz, sqlite-orm)
 - Compile Xibo Player for the current architecture
+- Update the control file with the correct architecture
 - Create the .deb package
 
 ### 3. Install the package

@@ -139,9 +139,15 @@ chmod +x "$APT_DIR/usr/bin/xibo-"*
 echo "Building .deb package..."
 cd "$PROJECT_ROOT"
 
+# Update control file with correct architecture
+sed -i "s/ARCH_PLACEHOLDER/$HOST_ARCH/g" "$APT_DIR/DEBIAN/control"
+
 # Build the package
 PACKAGE_NAME="xibo-player_1.8-R7_${HOST_ARCH}.deb"
 dpkg-deb --build apt "$PACKAGE_NAME"
+
+# Restore placeholder in control file for next build
+sed -i "s/$HOST_ARCH/ARCH_PLACEHOLDER/g" "$APT_DIR/DEBIAN/control"
 
 echo "=== Build completed ==="
 echo "Package created: $PACKAGE_NAME"

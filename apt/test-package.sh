@@ -85,6 +85,13 @@ else
     exit 1
 fi
 
+if grep -q "Architecture: ARCH_PLACEHOLDER" "$APT_DIR/DEBIAN/control"; then
+    echo "✅ control: architecture placeholder OK"
+else
+    echo "❌ control: architecture placeholder not found"
+    exit 1
+fi
+
 echo ""
 echo "=== All tests passed! ==="
 echo ""
