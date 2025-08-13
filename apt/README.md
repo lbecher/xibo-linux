@@ -1,36 +1,36 @@
-# Xibo Player - Pacote Debian (.deb)
+# Xibo Player - Debian Package (.deb)
 
-Este diretório contém os scripts e arquivos necessários para criar um pacote Debian (.deb) do Xibo Player.
+This directory contains the scripts and files required to create a Debian package (.deb) for the Xibo Player.
 
-## Estrutura
+## Structure
 
 ```
 apt/
 ├── DEBIAN/
-│   ├── control              # Metadados do pacote
-│   ├── postinst            # Script pós-instalação
-│   └── postrm              # Script pós-remoção
+│   ├── control             # Package metadata
+│   ├── postinst            # Post-installation script
+│   └── postrm              # Post-removal script
 ├── usr/
-│   ├── bin/                # Binários (serão copiados durante o build)
+│   ├── bin/                # Binaries (copied during the build)
 │   └── share/
-│       ├── applications/   # Arquivos .desktop
-│       ├── icons/          # Ícones (serão copiados durante o build)
-│       └── xibo-player/    # Recursos (serão copiados durante o build)
-├── build-deb.sh           # Script principal de build
-├── install-dependencies.sh # Script para instalar dependências
-└── README.md              # Este arquivo
+│       ├── applications/   # .desktop files
+│       ├── icons/          # Icons (copied during the build)
+│       └── xibo-player/    # Resources (copied during the build)
+├── build-deb.sh            # Main build script
+├── install-dependencies.sh # Script to install dependencies
+└── README.md               # This file
 ```
 
-## Como usar
+## How to Use
 
-### 1. Instalar dependências (opcional)
+### 1. Install dependencies (optional)
 
 ```bash
 cd apt/
 ./install-dependencies.sh
 ```
 
-### 2. Construir o pacote .deb
+### 2. Build the .deb package
 
 ```bash
 cd apt/
@@ -38,7 +38,7 @@ cd apt/
 ```
 
 This script will:
-- Detect the host architecture automatically
+- Automatically detect the host architecture
 - Install build dependencies
 - Build third-party libraries (date-tz, sqlite-orm)
 - Compile Xibo Player for the current architecture
@@ -56,22 +56,22 @@ sudo apt-get install -f  # If there are unsatisfied dependencies
 
 Where `<architecture>` can be: amd64, arm64, armhf, i386, riscv64, etc.
 
-### 4. Executar
+### 4. Run
 
-Após a instalação, você pode executar:
+After installation, you can run:
 
-- **Xibo Player**: `xibo-player` ou pelo menu de aplicações
-- **Xibo Options**: `xibo-options` ou pelo menu de aplicações
-- **Xibo Watchdog**: `xibo-watchdog` (normalmente usado internamente)
+- **Xibo Player**: `xibo-player` or via the application menu
+- **Xibo Options**: `xibo-options` or via the application menu
+- **Xibo Watchdog**: `xibo-watchdog` (usually used internally)
 
-## Dependências
+## Dependencies
 
-### Dependências de Runtime (instaladas automaticamente)
+### Runtime Dependencies (installed automatically)
 - libcrypto++6
-- libboost-date-time1.71.0 (ou 1.74.0)
-- libboost-filesystem1.71.0 (ou 1.74.0)
-- libboost-program-options1.71.0 (ou 1.74.0)
-- libboost-thread1.71.0 (ou 1.74.0)
+- libboost-date-time1.71.0 (or 1.74.0)
+- libboost-filesystem1.71.0 (or 1.74.0)
+- libboost-program-options1.71.0 (or 1.74.0)
+- libboost-thread1.71.0 (or 1.74.0)
 - libglu1-mesa
 - freeglut3
 - libzmq5
@@ -88,7 +88,7 @@ Após a instalação, você pode executar:
 - libspdlog1
 - libsqlite3-0
 
-### Dependências de Build (instaladas durante o build)
+### Build Dependencies (installed during the build)
 - cmake
 - g++
 - pkg-config
@@ -103,17 +103,17 @@ Após a instalação, você pode executar:
 - libsqlite3-dev
 - libcurl4-gnutls-dev
 
-## Desinstalar
+## Uninstall
 
 ```bash
 sudo apt remove xibo-player
 ```
 
-## Notas
+## Notes
 
-- O pacote é construído para a arquitetura do host atual (detectada automaticamente)
-- Arquiteturas suportadas: amd64, arm64, armhf, i386, riscv64, e outras
-- O processo de build baixa e compila algumas bibliotecas de terceiros localmente
-- O pacote instala os binários em `/usr/bin/` e os recursos em `/usr/share/xibo-player/`
-- Arquivos de configuração ficam no diretório home do usuário
-- Caminhos do GStreamer são configurados automaticamente baseados na arquitetura alvo
+- The package is built for the current host architecture (automatically detected)
+- Supported architectures: amd64, arm64, armhf, i386, riscv64, and others
+- The build process downloads and compiles some third-party libraries locally
+- The package installs binaries in `/usr/bin/` and resources in `/usr/share/xibo-player/`
+- Configuration files are stored in the user's home directory
+- GStreamer paths are automatically configured based on the target architecture
