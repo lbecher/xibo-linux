@@ -1,6 +1,9 @@
 project(stat)
 
-find_package(SqliteOrm REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+find_path(SQLITECPP_INCLUDE_DIR SQLiteCpp/SQLiteCpp.h)
+find_library(SQLITECPP_LIBRARY SQLiteCpp)
 
 add_library(${PROJECT_NAME}
     PlayingTime.hpp
@@ -27,4 +30,5 @@ add_library(${PROJECT_NAME}
     storage/DatabaseProvider.hpp
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE dt sqlite_orm::sqlite_orm)
+target_link_libraries(${PROJECT_NAME} PRIVATE dt ${SQLITE3_LIBRARIES} SQLiteCpp)
+target_include_directories(${PROJECT_NAME} PRIVATE ${SQLITE3_INCLUDE_DIRS} ${SQLITECPP_INCLUDE_DIR})

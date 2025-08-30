@@ -2,12 +2,23 @@
 
 #include "common/types/Uri.hpp"
 #include <gtest/gtest.h>
+#include <boost/optional/optional_io.hpp>
 
 struct HostTest
 {
     std::string str;
     Uri::Host::Type type;
 };
+
+// Operator for printing HostTest
+std::ostream& operator<<(std::ostream& os, const HostTest& host) {
+    return os << "HostTest{str=\"" << host.str << "\", type=" << static_cast<int>(host.type) << "}";
+}
+
+// Operator for printing Uri::Port
+inline std::ostream& operator<<(std::ostream& os, const Uri::Port& port) {
+    return os << static_cast<unsigned short>(port);
+}
 
 struct UriTest
 {

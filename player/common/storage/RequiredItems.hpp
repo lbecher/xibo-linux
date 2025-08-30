@@ -4,8 +4,10 @@
 #include "common/dt/DateTime.hpp"
 
 #include <istream>
+#include <sstream>
 #include <string>
 #include <vector>
+#include <fmt/format.h>
 
 class RegularFile
 {
@@ -72,3 +74,22 @@ std::ostream& operator<<(std::ostream& out, const ResourceFile& res);
 
 template <typename RequriedFile>
 using RequiredFilesSet = std::vector<RequriedFile>;
+
+// Add fmt formatters
+template<>
+struct fmt::formatter<RegularFile> : fmt::formatter<std::string> {
+    auto format(const RegularFile& file, format_context& ctx) const {
+        std::ostringstream oss;
+        oss << file;
+        return fmt::formatter<std::string>::format(oss.str(), ctx);
+    }
+};
+
+template<>
+struct fmt::formatter<ResourceFile> : fmt::formatter<std::string> {
+    auto format(const ResourceFile& res, format_context& ctx) const {
+        std::ostringstream oss;
+        oss << res;
+        return fmt::formatter<std::string>::format(oss.str(), ctx);
+    }
+};

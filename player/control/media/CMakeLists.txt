@@ -7,7 +7,8 @@ pkg_check_modules(GSTREAMER REQUIRED
     gstreamer-video-1.0>=1.16.2
     gstreamer-gl-1.0>=1.16.2
     gstreamer-app-1.0>=1.16.2)
-pkg_check_modules(WEBKITGTK REQUIRED webkit2gtk-4.0>=2.28.1)
+pkg_check_modules(WEBKITGTK REQUIRED webkit2gtk-4.1>=2.28.1)
+pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 
 # TODO split into dirs
 file(GLOB CONTROL_SOURCES
@@ -26,6 +27,7 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     ${GSTREAMER_LINK_LIBRARIES}
     ${WEBKITGTK_LINK_LIBRARIES}
+    ${SQLITE3_LIBRARIES}
     common
     transitions
 )
@@ -33,4 +35,5 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${GSTREAMER_INCLUDE_DIRS}
     ${WEBKITGTK_INCLUDE_DIRS}
+    ${SQLITE3_INCLUDE_DIRS}
 )

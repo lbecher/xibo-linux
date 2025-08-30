@@ -2,6 +2,8 @@
 
 #include "Record.hpp"
 
+#include <memory>
+
 namespace Stats
 {
     class MediaRecord : public Record

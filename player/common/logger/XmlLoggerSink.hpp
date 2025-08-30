@@ -65,6 +65,7 @@ private:
             case spdlog::level::err:
             case spdlog::level::critical:
             case spdlog::level::off: return "error";
+            case spdlog::level::n_levels: return "unknown";
         }
         return {};
     }

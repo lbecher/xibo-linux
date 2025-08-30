@@ -1,5 +1,7 @@
 #include "KeyboardKey.hpp"
 
+#include <cstdint>
+
 const std::string& KeyboardKey::key() const
 {
     return key_;

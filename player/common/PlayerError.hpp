@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <fmt/format.h>
 
 class PlayerError
 {
@@ -17,4 +18,17 @@ public:
 private:
     std::string domain_;
     std::string message_;
+};
+
+// Formatter specialization for fmt
+template <>
+struct fmt::formatter<PlayerError> {
+    constexpr auto parse(format_parse_context& ctx) {
+        return ctx.begin();
+    }
+
+    template <typename FormatContext>
+    auto format(const PlayerError& error, FormatContext& ctx) {
+        return format_to(ctx.out(), "[{}] {}", error.domain(), error.message());
+    }
 };

@@ -4,6 +4,16 @@
 
 #include "NotifyStatusInfo.hpp"
 #include "common/PlayerRuntimeError.hpp"
+
+#include <fmt/format.h>
+
+// Add fmt formatter for std::atomic<int>
+template<>
+struct fmt::formatter<std::atomic<int>> : fmt::formatter<int> {
+    auto format(const std::atomic<int>& atomic_val, format_context& ctx) const {
+        return fmt::formatter<int>::format(atomic_val.load(), ctx);
+    }
+};
 #include "common/dt/DateTime.hpp"
 #include "common/dt/Timer.hpp"
 #include "common/fs/FileSystem.hpp"

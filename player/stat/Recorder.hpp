@@ -9,6 +9,7 @@
 
 #include <boost/noncopyable.hpp>
 #include <mutex>
+#include <memory>
 
 namespace Stats
 {

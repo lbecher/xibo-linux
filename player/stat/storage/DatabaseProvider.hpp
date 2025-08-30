@@ -6,7 +6,8 @@
 #include "common/PlayerRuntimeError.hpp"
 #include "common/dt/DateTime.hpp"
 
-#include <sqlite_orm/sqlite_orm.h>
+#include <SQLiteCpp/SQLiteCpp.h>
+#include <memory>
 
 namespace Stats
 {

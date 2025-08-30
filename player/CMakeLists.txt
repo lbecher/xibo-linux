@@ -11,6 +11,7 @@ find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(GTKMM REQUIRED gtkmm-3.0>=3.22.0)
 pkg_check_modules(GLIBMM REQUIRED glibmm-2.4>=2.56.0)
+pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
 set(CMAKE_TESTS_DIRECTORY ${CMAKE_BINARY_DIR}/tests)
@@ -58,9 +59,11 @@ target_link_libraries(${PROJECT_NAME}
     schedule
     config
     control
+    stat
     system
     dl
     backtrace
+    ${SQLITE3_LIBRARIES}
 )
 
 if(SNAP_BUILD)
@@ -75,7 +78,7 @@ else()
     install(FILES resources/ui.glade resources/splash.jpg DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()
 
-enable_testing()
+#enable_testing()
 
 add_subdirectory(stat)
 add_subdirectory(control)

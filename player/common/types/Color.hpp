@@ -2,6 +2,8 @@
 
 #include "common/types/internal/ColorToHexConverter.hpp"
 
+#include <cstdint>
+
 struct Color
 {
     static Color fromString(const std::string& color)
