@@ -1,6 +1,7 @@
 #include "AppConfig.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <cstring>
 
 #include "common/PlayerRuntimeError.hpp"
 #include "common/fs/FileSystem.hpp"
@@ -107,6 +108,11 @@ FilePath AppConfig::additionalResourcesDirectory()
 #if defined(SNAP_ENABLED)
     return FilePath{getenv("SNAP")} / "usr" / "share" / "xibo-player";
 #else
+    // Check for portable mode environment variable first
+    const char* resourcePath = getenv("XIBO_RESOURCE_PATH");
+    if (resourcePath && strlen(resourcePath) > 0) {
+        return FilePath{resourcePath};
+    }
     return execDirectory();
 #endif
 }

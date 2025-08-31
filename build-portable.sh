@@ -340,14 +340,34 @@ cat > "$PORTABLE_DIR/xibo-player.sh" << 'EOF'
 # Xibo Player Portable Launcher
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Create config directory if it doesn't exist
+CONFIG_DIR="$HOME/.xibo-player"
+mkdir -p "$CONFIG_DIR"
+
 # Set library path for portable libraries
 export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$LD_LIBRARY_PATH"
 
 # Set resource path
 export XIBO_RESOURCE_PATH="$SCRIPT_DIR/share/xibo-player"
 
-# Launch the player
-exec "$SCRIPT_DIR/bin/xibo-player" "$@"
+# GStreamer workarounds for problematic plugins
+export GST_PLUGIN_SYSTEM_PATH_1_0=""
+export GST_PLUGIN_PATH_1_0=""
+
+# Disable VA-API plugin if it's causing segfaults
+export GST_REGISTRY="$CONFIG_DIR/gstreamer-registry.bin"
+
+# Set config path to avoid creating files in bin directory
+cd "$CONFIG_DIR"
+
+# Check for problematic VA plugin and disable if needed
+if ldd "$SCRIPT_DIR/bin/xibo-player" 2>/dev/null | grep -q "libva\|gstva" && [ -f "/usr/lib/x86_64-linux-gnu/gstreamer-1.0/libgstva.so" ]; then
+    echo "Warning: VA-API GStreamer plugin detected. Disabling to prevent crashes."
+    export GST_PLUGIN_FEATURE_RANK="vaapidecodebin:NONE,vaapisink:NONE,vaapih264dec:NONE,vaapih265dec:NONE"
+fi
+
+# Launch the player with error handling
+exec "$SCRIPT_DIR/bin/xibo-player" --gst-disable-segtrap "$@"
 EOF
 
 # Create options launcher script
@@ -357,11 +377,28 @@ cat > "$PORTABLE_DIR/xibo-options.sh" << 'EOF'
 # Xibo Options Portable Launcher
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Create config directory if it doesn't exist
+CONFIG_DIR="$HOME/.xibo-player"
+mkdir -p "$CONFIG_DIR"
+
 # Set library path for portable libraries
 export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$LD_LIBRARY_PATH"
 
 # Set resource path
 export XIBO_RESOURCE_PATH="$SCRIPT_DIR/share/xibo-player"
+
+# Set config path to avoid creating files in bin directory
+cd "$CONFIG_DIR"
+
+# Debug: Show what we're setting
+if [ "$1" = "--debug" ]; then
+    echo "SCRIPT_DIR: $SCRIPT_DIR"
+    echo "CONFIG_DIR: $CONFIG_DIR"
+    echo "XIBO_RESOURCE_PATH: $XIBO_RESOURCE_PATH"
+    echo "UI file: $SCRIPT_DIR/share/xibo-player/ui.glade"
+    ls -la "$SCRIPT_DIR/share/xibo-player/" || echo "Resource directory not found"
+    shift
+fi
 
 # Launch the options
 exec "$SCRIPT_DIR/bin/xibo-options" "$@"
@@ -411,6 +448,26 @@ To run Xibo Options:
 
 To run Xibo Watchdog:
   ./xibo-watchdog.sh
+
+Configuration:
+-------------
+Configuration files are stored in: ~/.xibo-player/
+This includes playerSettings.xml, cacheFile.xml, and logs.
+
+Troubleshooting:
+---------------
+If you experience crashes related to GStreamer VA-API:
+1. The launcher automatically disables problematic VA-API plugins
+2. If issues persist, try: ./xibo-player.sh --gst-disable-registry-fork
+
+For xibo-options issues:
+1. Run with debug: ./xibo-options.sh --debug
+2. Ensure GTK+ 3.0 is installed on your system
+
+Graphics Driver Issues:
+- Nouveau driver warnings are usually harmless
+- For better performance, consider proprietary NVIDIA drivers
+- Intel/AMD graphics should work without issues
 
 Requirements:
 ------------
