@@ -3,6 +3,7 @@
 #include "common/PlayerRuntimeError.hpp"
 
 #include <string>
+#include <cstdint>
 
 class ColorToHexConverter
 {
