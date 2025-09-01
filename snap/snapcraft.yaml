@@ -48,17 +48,17 @@ parts:
       - cmake
       - g++
 
-  # date-tz:
-  #   source: https://github.com/HowardHinnant/date/archive/v3.0.0.tar.gz
-  #   plugin: cmake
-  #   build-packages:
-  #     - libcurl4-gnutls-dev
-  #   cmake-parameters:
-  #     - -DBUILD_TZ_LIB=ON
-  #     - -DBUILD_SHARED_LIBS=ON
-  #     - -DUSE_SYSTEM_TZ_DB=ON
-  #     - -DCMAKE_INSTALL_PREFIX=/usr
-  #   after: [base]
+  date-tz:
+    source: https://github.com/HowardHinnant/date/archive/v3.0.0.tar.gz
+    plugin: cmake
+    build-packages:
+      - libcurl4-gnutls-dev
+    cmake-parameters:
+      - -DBUILD_TZ_LIB=ON
+      - -DBUILD_SHARED_LIBS=ON
+      - -DUSE_SYSTEM_TZ_DB=ON
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    after: [base]
 
   player:
     source: player
@@ -103,4 +103,4 @@ parts:
       - libgstreamer1.0-dev
       - libsqlitecpp-dev
       - libhowardhinnant-date-dev
-    # after: [date-tz] 
+    after: [date-tz] 
