@@ -68,6 +68,26 @@ parts:
       - -DAPP_ENV=SNAP
       - -DCMAKE_PREFIX_PATH=$SNAPCRAFT_STAGE/usr
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_SKIP_BUILD_RPATH=OFF
+      - -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
+      - -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
+    override-build: |
+      # Get architecture
+      ARCH=$(gcc -dumpmachine)
+      echo "Building for architecture: $ARCH"
+
+      # Set library paths to prefer stage libraries over SDK libraries
+      export PKG_CONFIG_PATH="$SNAPCRAFT_STAGE/usr/lib/$ARCH/pkgconfig:$PKG_CONFIG_PATH"
+      export LD_LIBRARY_PATH="$SNAPCRAFT_STAGE/usr/lib/$ARCH:$LD_LIBRARY_PATH"
+      export LDFLAGS="-Wl,--as-needed -Wl,-rpath-link,$SNAPCRAFT_STAGE/usr/lib/$ARCH -Wl,-rpath,$SNAPCRAFT_STAGE/usr/lib/$ARCH"
+      export CMAKE_EXE_LINKER_FLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SNAPCRAFT_STAGE/usr/lib/$ARCH"
+
+      # Debug: Show what Pango libraries are available
+      echo "Available Pango libraries in stage:"
+      find $SNAPCRAFT_STAGE -name "*pango*" -type f 2>/dev/null || echo "No Pango libraries found in stage"
+
+      # Call the default cmake build
+      craftctl default
     stage-packages:
       - libcrypto++8t64
       - libboost-date-time1.83.0
@@ -88,6 +108,10 @@ parts:
       - gstreamer1.0-libav
       - gstreamer1.0-gtk3
       - libdate-tz3
+      - libpango-1.0-0
+      - libpangocairo-1.0-0
+      - libpangoft2-1.0-0
+      - libharfbuzz0b
     build-packages:
       - libcrypto++-dev
       - libboost1.83-all-dev
@@ -103,4 +127,5 @@ parts:
       - libgstreamer1.0-dev
       - libsqlitecpp-dev
       - libhowardhinnant-date-dev
+      - libpango1.0-dev
     after: [date-tz] 
