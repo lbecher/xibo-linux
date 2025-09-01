@@ -88,7 +88,6 @@ parts:
       - gstreamer1.0-libav
       - gstreamer1.0-gtk3
       - libspdlog1.15
-      - libsqlitecpp0
       - libdate-tz3
     build-packages:
       - libcrypto++-dev
