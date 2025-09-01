@@ -76,7 +76,6 @@ parts:
       - libboost-thread1.83.0
       - libboost-system1.83.0
       - libglu1-mesa
-      - freeglut3
       - libzmq5
       - libgtkmm-3.0-1v5
       - libcanberra-gtk3-module
