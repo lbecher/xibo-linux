@@ -63,31 +63,59 @@ parts:
   player:
     source: player
     plugin: cmake
-    cmake-parameters:
-      - -DCMAKE_BUILD_TYPE=Release
-      - -DAPP_ENV=SNAP
-      - -DCMAKE_PREFIX_PATH=$SNAPCRAFT_STAGE/usr
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_SKIP_BUILD_RPATH=OFF
-      - -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
-      - -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON
     override-build: |
       # Get architecture
       ARCH=$(gcc -dumpmachine)
       echo "Building for architecture: $ARCH"
 
-      # Set library paths to prefer stage libraries over SDK libraries
-      export PKG_CONFIG_PATH="$SNAPCRAFT_STAGE/usr/lib/$ARCH/pkgconfig:$PKG_CONFIG_PATH"
-      export LD_LIBRARY_PATH="$SNAPCRAFT_STAGE/usr/lib/$ARCH:$LD_LIBRARY_PATH"
-      export LDFLAGS="-Wl,--as-needed -Wl,-rpath-link,$SNAPCRAFT_STAGE/usr/lib/$ARCH -Wl,-rpath,$SNAPCRAFT_STAGE/usr/lib/$ARCH"
-      export CMAKE_EXE_LINKER_FLAGS="-Wl,--disable-new-dtags -Wl,-rpath,$SNAPCRAFT_STAGE/usr/lib/$ARCH"
-
-      # Debug: Show what Pango libraries are available
-      echo "Available Pango libraries in stage:"
+      # Debug: Show current library paths
+      echo "Current LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+      echo "Current PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+      
+      # Debug: Show what Pango libraries are available in different locations
+      echo "Pango libraries in stage:"
       find $SNAPCRAFT_STAGE -name "*pango*" -type f 2>/dev/null || echo "No Pango libraries found in stage"
+      
+      echo "Pango libraries in system:"
+      find /usr/lib -name "*pango*" -type f 2>/dev/null | head -10 || echo "No Pango libraries found in system"
+      
+      echo "Pango libraries in SDK:"
+      find /snap/gnome-46-2404-sdk -name "*pango*" -type f 2>/dev/null | head -10 || echo "No Pango libraries found in SDK"
 
-      # Call the default cmake build
-      craftctl default
+      # Set library paths to prefer stage libraries over SDK libraries
+      export PKG_CONFIG_PATH="$SNAPCRAFT_STAGE/usr/lib/$ARCH/pkgconfig:$SNAPCRAFT_STAGE/usr/lib/pkgconfig:$PKG_CONFIG_PATH"
+      export LD_LIBRARY_PATH="$SNAPCRAFT_STAGE/usr/lib/$ARCH:$SNAPCRAFT_STAGE/usr/lib:$LD_LIBRARY_PATH"
+      
+      # More aggressive linker flags to force library paths
+      export LDFLAGS="-Wl,--as-needed -L$SNAPCRAFT_STAGE/usr/lib/$ARCH -L$SNAPCRAFT_STAGE/usr/lib -Wl,-rpath-link,$SNAPCRAFT_STAGE/usr/lib/$ARCH -Wl,-rpath,$SNAPCRAFT_STAGE/usr/lib/$ARCH"
+      export CMAKE_EXE_LINKER_FLAGS="-L$SNAPCRAFT_STAGE/usr/lib/$ARCH -L$SNAPCRAFT_STAGE/usr/lib -Wl,--disable-new-dtags -Wl,-rpath,$SNAPCRAFT_STAGE/usr/lib/$ARCH"
+
+      echo "Updated LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
+      echo "Updated PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+      echo "LDFLAGS: $LDFLAGS"
+
+      # Call cmake with explicit library directories
+      echo "Running cmake with explicit paths..."
+      cmake "$SNAPCRAFT_PART_SRC" \
+        -G "Unix Makefiles" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DAPP_ENV=SNAP \
+        -DCMAKE_PREFIX_PATH="$SNAPCRAFT_STAGE/usr" \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_SKIP_BUILD_RPATH=OFF \
+        -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON \
+        -DCMAKE_FIND_ROOT_PATH="$SNAPCRAFT_STAGE/usr" \
+        -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH \
+        -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH \
+        -DCMAKE_LIBRARY_PATH="$SNAPCRAFT_STAGE/usr/lib/$ARCH:$SNAPCRAFT_STAGE/usr/lib" \
+        -DCMAKE_EXE_LINKER_FLAGS="-L$SNAPCRAFT_STAGE/usr/lib/$ARCH -L$SNAPCRAFT_STAGE/usr/lib $CMAKE_EXE_LINKER_FLAGS"
+      
+      echo "Running make..."
+      cmake --build . -- -j4
+      
+      echo "Installing..."
+      DESTDIR="$SNAPCRAFT_PART_INSTALL" cmake --install .
     stage-packages:
       - libcrypto++8t64
       - libboost-date-time1.83.0
@@ -112,6 +140,11 @@ parts:
       - libpangocairo-1.0-0
       - libpangoft2-1.0-0
       - libharfbuzz0b
+    stage:
+      # Include specific Pango libraries to override SDK versions
+      - usr/lib/*/libpango*
+      - usr/lib/*/libharfbuzz*
+      - "*"
     build-packages:
       - libcrypto++-dev
       - libboost1.83-all-dev
@@ -128,4 +161,4 @@ parts:
       - libsqlitecpp-dev
       - libhowardhinnant-date-dev
       - libpango1.0-dev
-    after: [date-tz] 
+    after: [date-tz]
