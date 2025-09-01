@@ -1,37 +1,43 @@
 name: xibo-player
-base: core20
+base: core24
 version: 1.8-R7
 summary: Xibo Linux Player
 description: Xibo for Linux Digital Signage Player
 grade: stable
 confinement: strict
 
-architectures: [amd64, i386, arm64, armhf, powerpv, ppc64el, riscv64, s390x]
+platforms:
+  amd64:
+  arm64:
+  armhf:
+  ppc64el:
+  riscv64:
+  s390x:
 
 slots:
   dbus-daemon: # name this whatever you want
     interface: dbus
     bus: session
-    name: org.gtkmm.xibo # adjust accordingly
+    name: br.unioeste.xibo # adjust accordingly
 
 apps:
   xibo-player:
     command: usr/bin/snap_run.sh xibo-watchdog
     plugs: [gsettings, desktop, network, network-status, home, audio-playback, screen-inhibit-control, framebuffer, opengl]
     slots: [dbus-daemon]
-    extensions: [gnome-3-38]
+    extensions: [gnome]
 
   disabled-watchdog:
     command: usr/bin/snap_run.sh xibo-watchdog --disable-restart
     plugs: [gsettings, desktop, network, network-status, home, audio-playback, screen-inhibit-control, framebuffer, opengl]
     slots: [dbus-daemon]
-    extensions: [gnome-3-38]
+    extensions: [gnome]
 
   options:
     command: usr/bin/xibo-options
     plugs: [gsettings, desktop, network, network-status, home]
     slots: [dbus-daemon]
-    extensions: [gnome-3-38]
+    extensions: [gnome]
 
 parts:
   base:
@@ -42,27 +48,17 @@ parts:
       - cmake
       - g++
 
-  date-tz:
-    source: https://github.com/HowardHinnant/date/archive/v3.0.0.tar.gz
-    plugin: cmake
-    build-packages:
-      - libcurl4-gnutls-dev
-    cmake-parameters:
-      - -DBUILD_TZ_LIB=ON
-      - -DBUILD_SHARED_LIBS=ON
-      - -DUSE_SYSTEM_TZ_DB=ON
-      - -DCMAKE_INSTALL_PREFIX=/usr
-    after: [base]
-
-  sqlite-orm:
-    source: https://github.com/fnc12/sqlite_orm/archive/refs/tags/1.6.tar.gz
-    plugin: cmake
-    build-packages:
-      - libsqlite3-dev
-    cmake-parameters:
-      - -DBUILD_TESTING=OFF
-      - -DCMAKE_INSTALL_PREFIX=/usr
-    after: [base]
+  # date-tz:
+  #   source: https://github.com/HowardHinnant/date/archive/v3.0.0.tar.gz
+  #   plugin: cmake
+  #   build-packages:
+  #     - libcurl4-gnutls-dev
+  #   cmake-parameters:
+  #     - -DBUILD_TZ_LIB=ON
+  #     - -DBUILD_SHARED_LIBS=ON
+  #     - -DUSE_SYSTEM_TZ_DB=ON
+  #     - -DCMAKE_INSTALL_PREFIX=/usr
+  #   after: [base]
 
   player:
     source: player
@@ -73,17 +69,18 @@ parts:
       - -DCMAKE_PREFIX_PATH=$SNAPCRAFT_STAGE/usr
       - -DCMAKE_INSTALL_PREFIX=/usr
     stage-packages:
-      - libcrypto++6
-      - libboost-date-time1.71.0
-      - libboost-filesystem1.71.0
-      - libboost-program-options1.71.0
-      - libboost-thread1.71.0
+      - libcrypto++8t64
+      - libboost-date-time1.84.0
+      - libboost-filesystem1.84.0
+      - libboost-program-options1.84.0
+      - libboost-thread1.84.0
+      - libboost-system1.84.0
       - libglu1-mesa
       - freeglut3
       - libzmq5
       - libgtkmm-3.0-1v5
       - libcanberra-gtk3-module
-      - libwebkit2gtk-4.0-37
+      - libwebkit2gtk-4.1-0
       - libgpm2 # gstreamer warning
       - libslang2 # gstreamer warning
       - gstreamer1.0-plugins-good
@@ -91,12 +88,14 @@ parts:
       - gstreamer1.0-gl
       - gstreamer1.0-libav
       - gstreamer1.0-gtk3
-      - libspdlog1
+      - libspdlog1.15
+      - libsqlitecpp0
+      - libdate-tz3
     build-packages:
       - libcrypto++-dev
-      - libboost1.71-all-dev
+      - libboost1.84-all-dev
       - libgtkmm-3.0-dev
-      - libwebkit2gtk-4.0-dev
+      - libwebkit2gtk-4.1-dev
       - libglibmm-2.4-dev
       - libzmq3-dev
       - libspdlog-dev
@@ -105,4 +104,6 @@ parts:
       - libgstreamer-plugins-good1.0-dev
       - libgstreamer-plugins-base1.0-dev
       - libgstreamer1.0-dev
-    after: [date-tz, sqlite-orm] 
+      - libsqlitecpp-dev
+      - libhowardhinnant-date-dev
+    # after: [date-tz] 
