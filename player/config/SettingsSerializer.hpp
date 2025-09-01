@@ -29,7 +29,7 @@ protected:
         try
         {
             auto root = tree.get_child(RootNode);
-            (loadField(root, fields, std::make_index_sequence<fields.size()>{}), ...);
+            (loadField(root, fields), ...);
         }
         catch (std::exception& e)
         {
@@ -37,17 +37,23 @@ protected:
         }
     }
 
-    template <typename... Args, size_t... Is>
-    void loadField(const XmlNode& node, NamedField<Args...>& field, std::index_sequence<Is...>)
+    template <typename... Args>
+    void loadField(const XmlNode& node, NamedField<Args...>& field)
     {
-        if constexpr (field.size() == 1)
+        if constexpr (sizeof...(Args) == 1)
         {
             field.setValue(node.get<Args...>(field.name(), field.value()));
         }
         else
         {
-            field.setValue(node.get<Args>(field.template name<Is>(), field.template value<Is>())...);
+            loadFields(node, field, std::make_index_sequence<sizeof...(Args)>{});
         }
+    }
+
+    template <typename... Args, size_t... Is>
+    void loadFields(const XmlNode& node, NamedField<Args...>& field, std::index_sequence<Is...>)
+    {
+        field.setValue(node.get<Args>(field.template name<Is>(), field.template value<Is>())...);
     }
 
     template <typename... Args>
@@ -56,22 +62,28 @@ protected:
         XmlNode tree;
 
         auto& root = tree.add_child(RootNode, {});
-        (saveField(root, fields, std::make_index_sequence<fields.size()>{}), ...);
+        (saveField(root, fields), ...);
 
         return tree;
     }
 
-    template <typename... Args, size_t... Is>
-    void saveField(XmlNode& node, const NamedField<Args...>& field, std::index_sequence<Is...>)
+    template <typename... Args>
+    void saveField(XmlNode& node, const NamedField<Args...>& field)
     {
-        if constexpr (field.size() == 1)
+        if constexpr (sizeof...(Args) == 1)
         {
             node.put(field.name(), field.value());
         }
         else
         {
-            (node.put(field.template name<Is>(), field.template value<Is>()), ...);
+            saveFields(node, field, std::make_index_sequence<sizeof...(Args)>{});
         }
+    }
+
+    template <typename... Args, size_t... Is>
+    void saveFields(XmlNode& node, const NamedField<Args...>& field, std::index_sequence<Is...>)
+    {
+        (node.put(field.template name<Is>(), field.template value<Is>()), ...);
     }
 
     NodePath versionAttributePath() const override
