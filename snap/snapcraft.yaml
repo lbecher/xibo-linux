@@ -79,7 +79,7 @@ parts:
       - libboost-system1.83.0
       - libglu1-mesa
       - libzmq5
-      - libcanberra-gtk3-module
+      - libcanberra-gtk4-module
       - libwebkit2gtk-4.1-0
       - libgpm2 # gstreamer warning
       - libslang2 # gstreamer warning
@@ -87,7 +87,7 @@ parts:
       - gstreamer1.0-plugins-base
       - gstreamer1.0-gl
       - gstreamer1.0-libav
-      - gstreamer1.0-gtk3
+      - gstreamer1.0-gtk4
       - libdate-tz3
     build-packages:
       - libcrypto++-dev

@@ -9,8 +9,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(GTKMM REQUIRED gtkmm-3.0>=3.22.0)
-pkg_check_modules(GLIBMM REQUIRED glibmm-2.4>=2.56.0)
+pkg_check_modules(GTKMM REQUIRED gtkmm-4.0>=4.0.0)
+pkg_check_modules(GLIBMM REQUIRED glibmm-2.68>=2.68.0)
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin/)
