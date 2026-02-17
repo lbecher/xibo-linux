@@ -93,59 +93,51 @@ echo "Note: This script requires development libraries to be installed."
 echo "Run ./install-dependencies-debian.sh if not done already."
 echo
 
-echo "Building third-party libraries..."
-
-# Build date-tz library
-echo "Building date-tz..."
-cd "$BUILD_DIR"
-if [ ! -d "date-3.0.0" ]; then
-    echo "   Downloading date library..."
-    wget -q https://github.com/HowardHinnant/date/archive/v3.0.0.tar.gz -O date-3.0.0.tar.gz
-    tar -xzf date-3.0.0.tar.gz
-fi
-cd date-3.0.0
-mkdir -p build && cd build
-
-# Configure date library with architecture-specific settings
-CMAKE_DATE_ARGS=(
-    ".."
-    -DBUILD_TZ_LIB=ON
-    -DBUILD_SHARED_LIBS=OFF
-    -DUSE_SYSTEM_TZ_DB=ON
-    -DCMAKE_INSTALL_PREFIX="$BUILD_DIR/local"
-    -DCMAKE_BUILD_TYPE=Release
+echo "Validating required development libraries from APT..."
+REQUIRED_PKGCONFIG_MODULES=(
+    "gtkmm-3.0"
+    "glibmm-2.4"
+    "gstreamer-1.0"
+    "gstreamer-base-1.0"
+    "gstreamer-plugins-base-1.0"
+    "gstreamer-pbutils-1.0"
+    "gstreamer-video-1.0"
+    "gstreamer-gl-1.0"
+    "gstreamer-app-1.0"
+    "sqlite3"
+    "dbus-1"
+    "openssl"
+    "x11"
+    "libzmq"
 )
 
-# Add architecture-specific optimizations for date library too
-case "$HOST_ARCH" in
-    arm64|aarch64)
-        CMAKE_DATE_ARGS+=(-DCMAKE_C_FLAGS="-march=armv8-a")
-        CMAKE_DATE_ARGS+=(-DCMAKE_CXX_FLAGS="-march=armv8-a")
-        ;;
-    amd64|x86_64)
-        CMAKE_DATE_ARGS+=(-DCMAKE_C_FLAGS="-march=x86-64")
-        CMAKE_DATE_ARGS+=(-DCMAKE_CXX_FLAGS="-march=x86-64")
-        ;;
-    armhf)
-        CMAKE_DATE_ARGS+=(-DCMAKE_C_FLAGS="-march=armv7-a -mfpu=neon")
-        CMAKE_DATE_ARGS+=(-DCMAKE_CXX_FLAGS="-march=armv7-a -mfpu=neon")
-        ;;
-esac
+MISSING_RUNTIME_DEPS=()
+for module in "${REQUIRED_PKGCONFIG_MODULES[@]}"; do
+    if ! pkg-config --exists "$module"; then
+        MISSING_RUNTIME_DEPS+=("$module")
+    fi
+done
 
-cmake "${CMAKE_DATE_ARGS[@]}"
+if pkg-config --exists "webkit2gtk-4.1"; then
+    WEBKIT_MODULE="webkit2gtk-4.1"
+elif pkg-config --exists "webkit2gtk-4.0"; then
+    WEBKIT_MODULE="webkit2gtk-4.0"
+else
+    MISSING_RUNTIME_DEPS+=("webkit2gtk-4.1 or webkit2gtk-4.0")
+fi
 
-# Use optimized number of cores for compilation
-NPROC_DATE=$(nproc)
-case "$HOST_ARCH" in
-    armhf)
-        if [ $NPROC_DATE -gt 2 ]; then
-            NPROC_DATE=2
-        fi
-        ;;
-esac
+if ! ldconfig -p 2>/dev/null | grep -q "libdate-tz"; then
+    MISSING_RUNTIME_DEPS+=("libdate-tz (package: libhowardhinnant-date-dev)")
+fi
 
-make -j$NPROC_DATE
-make install
+if [ ${#MISSING_RUNTIME_DEPS[@]} -gt 0 ]; then
+    echo "Missing required dependencies:"
+    printf " - %s\n" "${MISSING_RUNTIME_DEPS[@]}"
+    echo "Run ./install-dependencies-debian.sh (as root) and try again."
+    exit 1
+fi
+
+echo "   WebKit module: $WEBKIT_MODULE"
 
 echo "🔧 Building Xibo Player..."
 cd "$BUILD_DIR"
@@ -156,7 +148,6 @@ CMAKE_ARGS=(
     "$PLAYER_DIR"
     -DCMAKE_BUILD_TYPE=Release
     -DAPP_ENV=PORTABLE
-    -DCMAKE_PREFIX_PATH="$BUILD_DIR/local"
     -DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++"
     -DCMAKE_FIND_LIBRARY_SUFFIXES=".a;.so"
     -DBUILD_SHARED_LIBS=OFF
@@ -474,7 +465,7 @@ Requirements:
 - Linux distribution compatible with $HOST_ARCH architecture
 - GTK+ 3.0 or later
 - GStreamer 1.0 or later
-- WebKit2GTK 4.1 or later
+- WebKit2GTK 4.1 (or 4.0) or later
 - glibc 2.27 or later (for compatibility)
 
 Architecture Support:

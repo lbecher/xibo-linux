@@ -7,7 +7,10 @@ pkg_check_modules(GSTREAMER REQUIRED
     gstreamer-video-1.0>=1.16.2
     gstreamer-gl-1.0>=1.16.2
     gstreamer-app-1.0>=1.16.2)
-pkg_check_modules(WEBKITGTK REQUIRED webkit2gtk-4.1>=2.28.1)
+pkg_check_modules(WEBKITGTK webkit2gtk-4.1>=2.28.1)
+if(NOT WEBKITGTK_FOUND)
+    pkg_check_modules(WEBKITGTK REQUIRED webkit2gtk-4.0>=2.28.1)
+endif()
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 
 # TODO split into dirs

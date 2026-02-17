@@ -58,10 +58,15 @@ $APT_CMD install -y \
 
 # GTK and GUI libraries
 echo "  - Bibliotecas GTK e GUI..."
+WEBKIT_DEV_PACKAGE="libwebkit2gtk-4.1-dev"
+if ! apt-cache show "$WEBKIT_DEV_PACKAGE" >/dev/null 2>&1; then
+    WEBKIT_DEV_PACKAGE="libwebkit2gtk-4.0-dev"
+fi
+
 $APT_CMD install -y \
     libgtkmm-3.0-dev \
     libglibmm-2.4-dev \
-    libwebkit2gtk-4.1-dev
+    "$WEBKIT_DEV_PACKAGE"
 
 # GStreamer libraries
 echo "  - GStreamer libraries..."
@@ -120,7 +125,7 @@ REQUIRED_PACKAGES=(
     "libboost-dev"
     "libgtkmm-3.0-dev"
     "libgstreamer1.0-dev"
-    "libwebkit2gtk-4.1-dev"
+    "$WEBKIT_DEV_PACKAGE"
     "cmake"
 )
 
