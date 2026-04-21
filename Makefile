@@ -1,18 +1,10 @@
-build: clean
-	mkdir -p build &&
-	cd build &&
-	cmake ../player
-.PHONY: build
+.PHONY: build rebuild clean
+
+build: clean rebuild
 
 rebuild:
-	mkdir -p build &&
-	cd build &&
-	cmake ../player
-.PHONY: rebuild
-	cd build &&
-	cmake ../player
-.PHONY: rebuild
+	mkdir -p build
+	cd build && cmake ../player
 
 clean:
 	rm -rf build
-.PHONY: clean

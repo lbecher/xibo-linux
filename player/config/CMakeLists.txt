@@ -8,8 +8,8 @@ if (NOT SNAP_BUILD)
         OUTPUT_VARIABLE SHORT_HASH
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    if(RESULT)
-        message(FATAL_ERROR "Failed to get git hash: ${RESULT}")
+    if(SHORT_HASH_RESULT)
+        message(FATAL_ERROR "Failed to get git hash: ${SHORT_HASH_RESULT}")
     endif()
     message("Retrieved commit SHA ${SHORT_HASH}")
     configure_file(GitHash.hpp.in GitHash.hpp @ONLY)

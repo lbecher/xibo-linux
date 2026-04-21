@@ -2,19 +2,33 @@
 
 #include "common/fs/FileSystem.hpp"
 
+#include <array>
 #include <boost/format.hpp>
-#include <openssl/md5.h>
+#include <memory>
+#include <openssl/evp.h>
 #include <sstream>
+#include <stdexcept>
 
 Md5Hash Md5Hash::fromString(std::string_view data)
 {
-    unsigned char result[MD5_DIGEST_LENGTH];
-    MD5(reinterpret_cast<const unsigned char*>(data.data()), data.size(), result);
+    std::array<unsigned char, EVP_MAX_MD_SIZE> result{};
+    unsigned int resultSize = 0;
+    std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> context(EVP_MD_CTX_new(), &EVP_MD_CTX_free);
+    constexpr unsigned int md5ResultSize = 16;
+
+    if (!context
+        || EVP_DigestInit_ex(context.get(), EVP_md5(), nullptr) != 1
+        || EVP_DigestUpdate(context.get(), data.data(), data.size()) != 1
+        || EVP_DigestFinal_ex(context.get(), result.data(), &resultSize) != 1
+        || resultSize != md5ResultSize)
+    {
+        throw std::runtime_error("Failed to calculate MD5 hash");
+    }
 
     std::stringstream stream;
-    for (unsigned char byte : result)
+    for (unsigned int i = 0; i < resultSize; ++i)
     {
-        stream << boost::format("%02x") % static_cast<short>(byte);
+        stream << boost::format("%02x") % static_cast<short>(result[i]);
     }
     return Md5Hash{stream.str()};
 }
