@@ -1,0 +1,33 @@
+Source: xibo-player
+Section: video
+Priority: optional
+Maintainer: Luiz Fernando Becher de Araujo <luiz.becher.araujo@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+ cmake,
+ pkgconf,
+ libglibmm-2.4-dev,
+ libgtkmm-3.0-dev,
+ libsqlite3-dev,
+ libssl-dev,
+ libzmq3-dev,
+ libspdlog-dev,
+ libcrypto++-dev,
+ libhowardhinnant-date-dev,
+ libboost-system-dev,
+ libboost-thread-dev,
+ libboost-filesystem-dev,
+ libboost-date-time-dev,
+ libboost-program-options-dev,
+ libgstreamer1.0-dev,
+ libgstreamer-plugins-base1.0-dev,
+ libwebkit2gtk-4.1-dev,
+ libgtest-dev,
+ libgmock-dev
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: xibo-player
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Xibo Player for Linux
+ Xibo digital signage player for Linux.

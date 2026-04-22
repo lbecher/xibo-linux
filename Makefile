@@ -1,4 +1,12 @@
-.PHONY: build rebuild clean install-build-deps
+.PHONY: build rebuild clean install-build-dependencies package-apt-amd64 package-apt-arm64 package-apt-armhf
+
+DIST_DIR ?= dist
+
+run: rebuild
+	./build/bin/xibo-player
+
+run-options: rebuild
+	./build/bin/xibo-options
 
 build: clean rebuild
 
@@ -9,25 +17,20 @@ rebuild:
 clean:
 	rm -rf build
 
-install-build-deps:
-	sudo apt install \
-		build-essential \
-		cmake \
-		libgtest-dev \
-		libgmock-dev \
-		libspdlog-dev \
-		libssl-dev \
-		libzmq3-dev \
-		libsqlitecpp-dev \
-		libhowardhinnant-date-dev \
-		libcrypto++-dev \
-		libgstreamer1.0-dev \
-		libgstreamer-plugins-base1.0-dev \
-		libboost-dev \
-		libboost-system-dev \
-		libboost-thread-dev \
-		libboost-filesystem-dev \
-		libboost-date-time-dev \
-		libboost-program-options-dev \
-		libgtkmm-4.0-dev \
-		libwebkit2gtk-4.1-dev
+install-build-dependencies:
+	./scripts/install-build-deps.sh
+
+package-apt-amd64:
+	mkdir -p $(DIST_DIR)
+	dpkg-buildpackage -us -uc -b -a amd64
+	mv -f ../xibo-player_*_amd64.deb ../xibo-player_*_amd64.buildinfo ../xibo-player_*_amd64.changes ../xibo-player-dbgsym_*_amd64.ddeb $(DIST_DIR)/ 2>/dev/null || true
+
+package-apt-arm64:
+	mkdir -p $(DIST_DIR)
+	dpkg-buildpackage -us -uc -b -a arm64
+	mv -f ../xibo-player_*_arm64.deb ../xibo-player_*_arm64.buildinfo ../xibo-player_*_arm64.changes ../xibo-player-dbgsym_*_arm64.ddeb $(DIST_DIR)/ 2>/dev/null || true
+
+package-apt-armhf:
+	mkdir -p $(DIST_DIR)
+	dpkg-buildpackage -us -uc -b -a armhf
+	mv -f ../xibo-player_*_armhf.deb ../xibo-player_*_armhf.buildinfo ../xibo-player_*_armhf.changes ../xibo-player-dbgsym_*_armhf.ddeb $(DIST_DIR)/ 2>/dev/null || true

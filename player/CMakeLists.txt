@@ -61,7 +61,10 @@ target_link_libraries(${PROJECT_NAME}
     ${SQLITE3_LIBRARIES}
 )
 
-install(FILES resources/ui.glade resources/splash.jpg DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+install(FILES resources/ui.glade resources/splash.jpg DESTINATION share/xibo-player)
+install(FILES resources/xibo-player.desktop DESTINATION share/applications)
+install(FILES resources/xibo-player.png DESTINATION share/icons/hicolor/256x256/apps)
 
 #enable_testing()
 

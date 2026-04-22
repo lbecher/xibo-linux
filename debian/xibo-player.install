@@ -1,0 +1,7 @@
+usr/bin/xibo-player
+usr/bin/xibo-options
+usr/bin/xibo-watchdog
+usr/share/xibo-player/ui.glade
+usr/share/xibo-player/splash.jpg
+usr/share/applications/xibo-player.desktop
+usr/share/icons/hicolor/256x256/apps/xibo-player.png

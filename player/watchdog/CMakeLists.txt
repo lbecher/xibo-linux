@@ -12,3 +12,5 @@ target_link_libraries(${PROJECT_NAME}
     config
     Boost::program_options
 )
+
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

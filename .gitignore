@@ -1,2 +1,17 @@
 /build
+/dist
 /local
+*.deb
+*.build
+*.buildinfo
+*.changes
+*.dsc
+*.log
+*.tar.*
+obj-*
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/xibo-player/
+debian/xibo-player.substvars
+debian/tmp/
