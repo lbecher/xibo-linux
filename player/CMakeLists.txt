@@ -34,15 +34,6 @@ add_compile_definitions(
     BOOST_STACKTRACE_USE_BACKTRACE
 )
 
-set(APP_ENV "" CACHE STRING "Player environment (SNAP)")
-if("${APP_ENV}" STREQUAL "SNAP")
-    message("Build will be done for SNAP environment")
-    set(SNAP_BUILD ON)
-    add_compile_definitions(SNAP_ENABLED)
-else()
-    message("Build will be done for custom environment")
-endif()
-
 option(GTK_UI "Use GTK library for UI" ON)
 if(GTK_UI)
     add_compile_definitions(USE_GTK)
@@ -70,17 +61,7 @@ target_link_libraries(${PROJECT_NAME}
     ${SQLITE3_LIBRARIES}
 )
 
-if(SNAP_BUILD)
-    install(DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} DESTINATION bin USE_SOURCE_PERMISSIONS)
-    install(FILES resources/ui.glade resources/splash.jpg DESTINATION share/xibo-player)
-    install(
-        FILES snap_run.sh
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-        DESTINATION bin
-    )
-else()
-    install(FILES resources/ui.glade resources/splash.jpg DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-endif()
+install(FILES resources/ui.glade resources/splash.jpg DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 #enable_testing()
 
