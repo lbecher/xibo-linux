@@ -2,6 +2,7 @@
 
 #include <boost/thread/future.hpp>
 
+#include "cms/xmds/GetDependency.hpp"
 #include "cms/xmds/GetFile.hpp"
 #include "cms/xmds/GetResource.hpp"
 #include "cms/xmds/MediaInventory.hpp"
@@ -30,10 +31,14 @@ public:
     FutureResponseResult<RequiredFiles::Result> requiredFiles();
     FutureResponseResult<Schedule::Result> schedule();
     FutureResponseResult<GetResource::Result> getResource(int layoutId, int regionId, int mediaId);
-    FutureResponseResult<GetFile::Result> getFile(int fileId,
+    FutureResponseResult<GetFile::Result> getFile(const std::string& fileId,
                                                   const std::string& fileType,
                                                   std::size_t chunkOffset,
                                                   std::size_t chunkSize);
+    FutureResponseResult<GetFile::Result> getDependency(const std::string& fileType,
+                                                        const std::string& id,
+                                                        std::size_t chunkOffset,
+                                                        std::size_t chunkSize);
     FutureResponseResult<MediaInventory::Result> mediaInventory(MediaInventoryItems&& items);
     FutureResponseResult<SubmitLog::Result> submitLogs(const std::string& logXml);
     FutureResponseResult<SubmitStats::Result> submitStats(const std::string& statXml);

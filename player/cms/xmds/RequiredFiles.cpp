@@ -3,6 +3,10 @@
 #include "cms/xmds/Resources.hpp"
 #include "common/logger/Logging.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <stdexcept>
+
 namespace Resources = XmdsResources::RequiredFiles;
 
 const RequiredFilesSet<RegularFile>& RequiredFiles::Result::requiredFiles() const
@@ -54,7 +58,7 @@ RequiredFiles::Result Soap::ResponseParser<RequiredFiles::Result>::parseBody(con
         auto fileAttrs = fileNode.get_child(Resources::FileAttrs);
         auto fileType = fileAttrs.get<std::string>(Resources::FileType);
 
-        if (isLayout(fileType) || isMedia(fileType))
+        if (isLayout(fileType) || isMedia(fileType) || isDependency(fileType))
         {
             result.addFile(parseRegularFile(fileAttrs));
         }
@@ -70,20 +74,51 @@ RequiredFiles::Result Soap::ResponseParser<RequiredFiles::Result>::parseBody(con
 RegularFile Soap::ResponseParser<RequiredFiles::Result>::parseRegularFile(const XmlNode& attrs)
 {
     auto fileType = attrs.get<std::string>(Resources::FileType);
-    auto id = attrs.get<int>(Resources::RegularFile::Id);
+    auto remoteId = attrs.get<std::string>(Resources::RegularFile::Id);
+    auto id = 0;
+    try
+    {
+        id = std::stoi(remoteId);
+    }
+    catch (const std::exception&)
+    {
+        if (!isDependency(fileType))
+        {
+            Log::error("[RequiredFiles] Invalid numeric id read from XML - type: {}, id: '{}'", fileType, remoteId);
+        }
+    }
     auto size = attrs.get<size_t>(Resources::RegularFile::Size);
-    auto md5 = Md5Hash{attrs.get<std::string>(Resources::RegularFile::MD5)};
+    auto md5Value = attrs.get<std::string>(Resources::RegularFile::MD5);
+    auto md5 = Md5Hash{md5Value};
     auto downloadType = toDownloadType(attrs.get<std::string>(Resources::RegularFile::DownloadType));
     auto [path, name] = parseFileNameAndPath(downloadType, fileType, attrs);
+    auto requestType = fileType;
+    if (isDependency(fileType))
+    {
+        requestType = attrs.get<std::string>(Resources::RegularFile::DependencyFileType, requestType);
+    }
 
-    Log::info("[RequiredFiles] Parsed regular file - id: {}, name: {}, md5: {}", id, name, static_cast<std::string>(md5));
+    auto invalidMd5 = md5Value.size() != 32
+        || std::any_of(md5Value.begin(), md5Value.end(), [](unsigned char ch) { return !std::isxdigit(ch); });
+    if (invalidMd5)
+    {
+        Log::error("[RequiredFiles] Invalid hash format read from XML - id: {}, name: {}, md5: '{}'", id, name, md5Value);
+    }
 
-    return RegularFile{id, size, md5, path, name, fileType, downloadType};
+    Log::info("[RequiredFiles] Parsed regular file - id: {}, remoteId: {}, type: {}, requestType: {}, name: {}, md5: {}",
+              id,
+              remoteId,
+              fileType,
+              requestType,
+              name,
+              static_cast<std::string>(md5));
+
+    return RegularFile{id, size, md5, path, name, fileType, downloadType, remoteId, requestType};
 }
 
 ResourceFile Soap::ResponseParser<RequiredFiles::Result>::parseResourceFile(const XmlNode& attrs)
 {
-    auto layoutId = attrs.get<int>(Resources::ResourceFile::MediaId);
+    auto layoutId = attrs.get<int>(Resources::ResourceFile::LayoutId);
     auto regionId = attrs.get<int>(Resources::ResourceFile::RegionId);
     auto mediaId = attrs.get<int>(Resources::ResourceFile::MediaId);
     auto lastUpdate = DateTime::utcFromTimestamp(attrs.get<int>(Resources::ResourceFile::LastUpdate));
@@ -99,6 +134,11 @@ bool Soap::ResponseParser<RequiredFiles::Result>::isLayout(std::string_view type
 bool Soap::ResponseParser<RequiredFiles::Result>::isMedia(std::string_view type) const
 {
     return type == Resources::MediaType;
+}
+
+bool Soap::ResponseParser<RequiredFiles::Result>::isDependency(std::string_view type) const
+{
+    return type == Resources::DependencyType;
 }
 
 bool Soap::ResponseParser<RequiredFiles::Result>::isResource(std::string_view type) const

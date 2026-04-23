@@ -11,7 +11,11 @@ MediaInventoryItem::MediaInventoryItem(const RegularFile& file, bool downloadCom
     MediaInventoryItem(downloadComplete)
 {
     type_ = file.type();
-    id_ = file.id();
+    id_ = file.remoteId();
+    if (file.isDependency())
+    {
+        fileType_ = file.requestType();
+    }
     md5_ = file.hash();
 }
 
@@ -19,7 +23,7 @@ MediaInventoryItem::MediaInventoryItem(const ResourceFile& file, bool downloadCo
     MediaInventoryItem(downloadComplete)
 {
     type_ = ResourceType;
-    id_ = file.mediaId();
+    id_ = std::to_string(file.mediaId());
 }
 
 MediaInventoryItem::MediaInventoryItem(bool downloadComplete) : downloadComplete_(downloadComplete)
@@ -34,9 +38,14 @@ const std::string& MediaInventoryItem::type() const
     return type_;
 }
 
-int MediaInventoryItem::id() const
+const std::string& MediaInventoryItem::id() const
 {
     return id_;
+}
+
+const std::string& MediaInventoryItem::fileType() const
+{
+    return fileType_;
 }
 
 bool MediaInventoryItem::downloadComplete() const

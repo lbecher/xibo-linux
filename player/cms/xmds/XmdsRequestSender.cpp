@@ -110,7 +110,7 @@ FutureResponseResult<GetResource::Result> XmdsRequestSender::getResource(int lay
     return SoapRequestHelper::sendRequest<GetResource::Result>(uri_, request);
 }
 
-FutureResponseResult<GetFile::Result> XmdsRequestSender::getFile(int fileId,
+FutureResponseResult<GetFile::Result> XmdsRequestSender::getFile(const std::string& fileId,
                                                                  const std::string& fileType,
                                                                  std::size_t chunkOffset,
                                                                  std::size_t chunkSize)
@@ -118,8 +118,24 @@ FutureResponseResult<GetFile::Result> XmdsRequestSender::getFile(int fileId,
     GetFile::Request request;
     request.serverKey = serverKey_;
     request.hardwareKey = hardwareKey_;
-    request.fileId = std::to_string(fileId);
+    request.fileId = fileId;
     request.fileType = fileType;
+    request.chunkOffset = chunkOffset;
+    request.chunkSize = chunkSize;
+
+    return SoapRequestHelper::sendRequest<GetFile::Result>(uri_, request);
+}
+
+FutureResponseResult<GetFile::Result> XmdsRequestSender::getDependency(const std::string& fileType,
+                                                                       const std::string& id,
+                                                                       std::size_t chunkOffset,
+                                                                       std::size_t chunkSize)
+{
+    GetDependency::Request request;
+    request.serverKey = serverKey_;
+    request.hardwareKey = hardwareKey_;
+    request.fileType = fileType;
+    request.id = id;
     request.chunkOffset = chunkOffset;
     request.chunkSize = chunkSize;
 

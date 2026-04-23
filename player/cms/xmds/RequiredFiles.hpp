@@ -55,6 +55,7 @@ private:
 
     bool isLayout(std::string_view type) const;
     bool isMedia(std::string_view type) const;
+    bool isDependency(std::string_view type) const;
     bool isResource(std::string_view type) const;
     RegularFile::DownloadType toDownloadType(std::string_view type);
 };

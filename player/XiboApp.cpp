@@ -376,9 +376,19 @@ void XiboApp::checkResourceDirectory()
         if (!fileCache_->valid(file)) continue;
 
         auto fullPath = cmsSettings_.resourcesPath() / file;
-        if (!FileSystem::exists(fullPath) || !fileCache_->cached(file, Md5Hash::fromFile(fullPath)))
+        if (!FileSystem::exists(fullPath))
         {
-            Log::trace("[{}] Missing/corrupted in resource directory", file);
+            Log::error("[XiboApp] Cached file '{}' marked invalid: missing on disk ({})", file, fullPath.string());
+            fileCache_->markAsInvalid(file);
+            continue;
+        }
+
+        auto onDiskHash = Md5Hash::fromFile(fullPath);
+        if (!fileCache_->cached(file, onDiskHash))
+        {
+            Log::error("[XiboApp] Cached file '{}' marked invalid: on-disk hash='{}' differs from cache",
+                       file,
+                       static_cast<std::string>(onDiskHash));
             fileCache_->markAsInvalid(file);
         }
     }

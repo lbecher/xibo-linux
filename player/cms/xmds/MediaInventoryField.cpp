@@ -24,6 +24,10 @@ std::string SoapField<MediaInventoryItems>::toXmlString(const MediaInventoryItem
 
         fileAttrs.put("type", item.type());
         fileAttrs.put("id", item.id());
+        if (item.type() == "dependency" && !item.fileType().empty())
+        {
+            fileAttrs.put("fileType", item.fileType());
+        }
         fileAttrs.put("complete", static_cast<int>(item.downloadComplete()));
         fileAttrs.put("md5", item.md5());
         fileAttrs.put("lastChecked", item.lastChecked());

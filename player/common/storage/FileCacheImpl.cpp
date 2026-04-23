@@ -60,6 +60,13 @@ bool FileCacheImpl::cached(const std::string& filename, const Md5Hash& hash) con
     if (node)
     {
         Md5Hash savedHash{node->get<std::string>(Md5Attr)};
+        if (savedHash != hash)
+        {
+            Log::error("[FileCache] Cache hash mismatch for {}: cached='{}' checked='{}'",
+                       filename,
+                       static_cast<std::string>(savedHash),
+                       static_cast<std::string>(hash));
+        }
         return savedHash == hash;
     }
 

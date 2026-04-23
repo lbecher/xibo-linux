@@ -25,14 +25,19 @@ public:
                 const std::string& url,
                 const std::string& name,
                 const std::string& type,
-                DownloadType downloadType);
+                DownloadType downloadType,
+                const std::string& remoteId = {},
+                const std::string& requestType = {});
 
     int id() const;
+    const std::string& remoteId() const;
+    const std::string& requestType() const;
     size_t size() const;
     Md5Hash hash() const;
     std::string url() const;
     std::string name() const;
     std::string type() const;
+    bool isDependency() const;
     DownloadType downloadType() const;
 
 private:
@@ -45,6 +50,8 @@ private:
     std::string url_;
     std::string name_;
     std::string type_;
+    std::string remoteId_;
+    std::string requestType_;
     DownloadType downloadType_;
 };
 

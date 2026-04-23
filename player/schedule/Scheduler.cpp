@@ -183,15 +183,24 @@ bool Scheduler::layoutValid(const Layout& layout) const
 {
     assert(schedule_);
 
-    if (UnsafeItemStore::instance().isUnsafeLayout(layout.id)) return false;
+    if (UnsafeItemStore::instance().isUnsafeLayout(layout.id))
+    {
+        Log::error("[Scheduler] Layout {} invalid: flagged as unsafe", layout.id);
+        return false;
+    }
 
     auto layoutFile = std::to_string(layout.id) + ".xlf";
-    if (!fileCache_.valid(layoutFile)) return false;
+    if (!fileCache_.valid(layoutFile))
+    {
+        Log::error("[Scheduler] Layout {} invalid: '{}' is not valid in cache", layout.id, layoutFile);
+        return false;
+    }
 
     for (auto&& dependant : layout.dependants)
     {
         if (!fileCache_.valid(dependant))
         {
+            Log::error("[Scheduler] Layout {} invalid: dependant '{}' is not valid in cache", layout.id, dependant);
             return false;
         }
     }
@@ -200,6 +209,8 @@ bool Scheduler::layoutValid(const Layout& layout) const
     {
         if (!fileCache_.valid(dependant))
         {
+            Log::error(
+                "[Scheduler] Layout {} invalid: global dependant '{}' is not valid in cache", layout.id, dependant);
             return false;
         }
     }

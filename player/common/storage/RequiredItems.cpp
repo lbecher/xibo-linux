@@ -19,7 +19,8 @@ std::ostream& operator<<(std::ostream& out, const RegularFile& file)
 {
     out << "FileType: " << file.type_ << " ID: " << file.id_ << " Size: " << file.size_ << std::endl;
     out << "MD5: " << file.hash_ << " FileName: " << file.name_
-        << " DownloadType: " << Utils::toString(file.downloadType_) << " URL: " << file.url_;
+        << " DownloadType: " << Utils::toString(file.downloadType_) << " URL: " << file.url_
+        << " RemoteID: " << file.remoteId_ << " RequestType: " << file.requestType_;
     return out;
 }
 
@@ -64,13 +65,17 @@ RegularFile::RegularFile(int id,
                          const std::string& url,
                          const std::string& name,
                          const std::string& type,
-                         RegularFile::DownloadType downloadType) :
+                         RegularFile::DownloadType downloadType,
+                         const std::string& remoteId,
+                         const std::string& requestType) :
     id_{id},
     size_{size},
     hash_{hash},
     url_{url},
     name_{name},
     type_{type},
+    remoteId_{remoteId.empty() ? std::to_string(id) : remoteId},
+    requestType_{requestType.empty() ? type : requestType},
     downloadType_{downloadType}
 {
 }
@@ -78,6 +83,21 @@ RegularFile::RegularFile(int id,
 int RegularFile::id() const
 {
     return id_;
+}
+
+const std::string& RegularFile::remoteId() const
+{
+    return remoteId_;
+}
+
+const std::string& RegularFile::requestType() const
+{
+    return requestType_;
+}
+
+bool RegularFile::isDependency() const
+{
+    return type_ == "dependency";
 }
 
 ResourceFile::ResourceFile(int layoutId, int regionId, int mediaId, const DateTime& lastUpdate) :

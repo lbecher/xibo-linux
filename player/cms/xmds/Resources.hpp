@@ -88,6 +88,7 @@ namespace XmdsResources
         const std::string MediaType = "media";
         const std::string LayoutType = "layout";
         const std::string ResourceType = "resource";
+        const std::string DependencyType = "dependency";
 
         namespace RegularFile
         {
@@ -97,6 +98,7 @@ namespace XmdsResources
             const std::string Path = "path";
             const std::string Name = "saveAs";
             const std::string DownloadType = "download";
+            const std::string DependencyFileType = "fileType";
             const std::string HttpDownload = "http";
             const std::string XmdsDownload = "xmds";
 
@@ -115,6 +117,11 @@ namespace XmdsResources
     {
         const std::string_view Name = "GetFile";
         const std::string FileChunk = "file";
+    }
+
+    namespace GetDependency
+    {
+        const std::string_view Name = "GetDependency";
     }
 
     namespace MediaInventory

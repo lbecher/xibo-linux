@@ -88,12 +88,15 @@ DownloadResult RequiredFilesDownloader::downloadRequiredFile(const RegularFile& 
     }
     else
     {
-        Log::info("[RequiredFilesDownloader] Downloading file via XMDS: id={}, type={}, name={}, size={}",
+        Log::info("[RequiredFilesDownloader] Downloading file via XMDS: id={}, remoteId={}, type={}, requestType={}, dependency={}, name={}, size={}",
                   file.id(),
+                  file.remoteId(),
                   file.type(),
+                  file.requestType(),
+                  file.isDependency(),
                   file.name(),
                   file.size());
-        return xmdsFileDownloader_->download(file.id(), file.type(), file.size())
+        return xmdsFileDownloader_->download(file.remoteId(), file.requestType(), file.size(), file.isDependency())
             .then([this, file](boost::future<XmdsResponseResult> future) {
                 return onRegularFileDownloaded(future.get(), file);
             });
