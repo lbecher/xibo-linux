@@ -19,6 +19,8 @@ public:
     NativeWindow nativeWindow() const;
 
 protected:
+    Xibo::Window& window();
+    const Xibo::Window& window() const;
     virtual void takeScreenshotNative(NativeWindow window, const ImageBufferCreated& callback) = 0;
 
 private:

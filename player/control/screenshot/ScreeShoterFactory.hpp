@@ -2,7 +2,7 @@
 
 #include "control/screenshot/PortalScreenShoter.hpp"
 #ifdef USE_GTK
-#include "control/screenshot/gtk/X11ScreenShoter.hpp"
+#include "control/screenshot/gtk/GdkScreenShoter.hpp"
 #endif
 #include "control/screenshot/ScreenShoter.hpp"
 
@@ -11,25 +11,24 @@
 
 namespace ScreenShoterFactory
 {
-    inline bool isWaylandSession()
-    {
-        const char* sessionType = std::getenv("XDG_SESSION_TYPE");
-        const char* waylandDisplay = std::getenv("WAYLAND_DISPLAY");
-
-        return (sessionType && std::string{sessionType} == "wayland") ||
-               (waylandDisplay && std::string{waylandDisplay}.size() > 0);
-    }
-
+    /**
+     * @brief Modern screenshot factory preferring Wayland-capable implementations
+     *
+     * Priority:
+     * 1. GdkScreenShoter (GTK4) - works on both Wayland and X11 via backend-agnostic Gdk APIs
+     * 2. PortalScreenShoter - DBus portal API for sandboxed/restricted environments
+     * 3. PortalScreenShoter fallback - when GTK is unavailable
+     *
+     * This strategy avoids low-level X11 APIs while maintaining compatibility.
+     */
     inline std::unique_ptr<ScreenShoter> create(Xibo::Window& window)
     {
-        if (isWaylandSession())
-        {
-            return std::make_unique<PortalScreenShoter>(window);
-        }
-
 #ifdef USE_GTK
-        return std::make_unique<X11ScreenShoter>(window);
+        // Prefer GTK4's Gdk-based screenshot implementation
+        // Works seamlessly on both Wayland and X11 without hardcoded backend dependencies
+        return std::make_unique<GdkScreenShoter>(window);
 #else
+        // Fallback to freedesktop portal API for restricted/sandboxed environments
         return std::make_unique<PortalScreenShoter>(window);
 #endif
     }

@@ -4,7 +4,6 @@
 
 #include <boost/format.hpp>
 #include <gdk/gdk.h>
-#include <gdk/x11/gdkx.h>
 #include <gdkmm/monitor.h>
 #include <gtkmm/cssprovider.h>
 #include <gtkmm/eventcontrollerkey.h>
@@ -185,11 +184,8 @@ void WindowGtk::setBackgroundColor(const Color& color)
 
 NativeWindow WindowGtk::nativeWindow()
 {
-    auto surface = handler_.get_surface();
-    if (surface && GDK_IS_X11_SURFACE(surface->gobj()))
-    {
-        return gdk_x11_surface_get_xid(surface->gobj());
-    }
+    // Modern GTK4/Wayland approach: use screenshot abstraction instead of native window ID
+    // This method is deprecated in favor of backend-agnostic screenshot implementation
     return DefaultNativeWindow;
 }
 

@@ -18,3 +18,13 @@ NativeWindow ScreenShoter::nativeWindow() const
 {
     return window_.nativeWindow();
 }
+
+Xibo::Window& ScreenShoter::window()
+{
+    return window_;
+}
+
+const Xibo::Window& ScreenShoter::window() const
+{
+    return window_;
+}
