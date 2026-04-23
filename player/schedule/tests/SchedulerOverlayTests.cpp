@@ -110,3 +110,20 @@ TEST_F(SchedulerLayoutTests, OverlayLayoutsDifferentPrioritiesSomeInvalid)
 
     ASSERT_EQ(scheduler->overlayLayouts(), std::vector{DefaultTestId + 1});
 }
+
+TEST_F(SchedulerLayoutTests, OverlayLayoutsInactiveCriteriaAreSkipped)
+{
+    auto scheduler = construct();
+    LayoutSchedule schedule{};
+
+    auto gated = validLayout(DefaultTestId + 1, DefaultTestPriority);
+    gated.criterias.push_back(criteria("temperature", "20", "weather", "gte"));
+    addToQueue(schedule, std::move(gated));
+    scheduler->reloadSchedule(std::move(schedule));
+
+    ASSERT_EQ(scheduler->overlayLayouts(), std::vector<int>{});
+
+    scheduler->addOrReplaceCriteria("temperature", "25", 300);
+
+    ASSERT_EQ(scheduler->overlayLayouts(), std::vector{DefaultTestId + 1});
+}

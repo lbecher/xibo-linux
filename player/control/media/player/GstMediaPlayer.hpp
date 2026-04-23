@@ -17,7 +17,7 @@ public:
         using PlayerRuntimeError::PlayerRuntimeError;
     };
 
-    GstMediaPlayer();
+    explicit GstMediaPlayer(const MediaPlayerOptions& options);
     ~GstMediaPlayer() override;
 
     void load(const Uri& uri) override;
@@ -41,6 +41,7 @@ protected:
     GstElement* videoSink_;
     GstElement* glSinkBin_;
     guint busWatchId_;
+    MediaPlayerOptions options_;
 
     std::shared_ptr<Xibo::OutputWindow> outputWindow_;
     SignalPlaybackFinished playbackFinished_;

@@ -73,7 +73,27 @@ ScheduledLayout ScheduleParser::scheduledLayoutFrom(const XmlNode& node)
         layout.dependants = dependantsFrom(dependants.value());
     }
 
+    for (auto&& [name, child] : node)
+    {
+        if (name == Resources::Criteria)
+        {
+            layout.criterias.emplace_back(criteriaFrom(child));
+        }
+    }
+
     return layout;
+}
+
+ScheduleCriteria ScheduleParser::criteriaFrom(const XmlNode& node)
+{
+    ScheduleCriteria criteria;
+
+    criteria.metric = node.get<std::string>(Resources::CriteriaMetric);
+    criteria.type = node.get<std::string>(Resources::CriteriaType);
+    criteria.condition = node.get<std::string>(Resources::CriteriaCondition);
+    criteria.value = node.get_value<std::string>();
+
+    return criteria;
 }
 
 DefaultScheduledLayout ScheduleParser::defaultLayoutFrom(const XmlNode& node)

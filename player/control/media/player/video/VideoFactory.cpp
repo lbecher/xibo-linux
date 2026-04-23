@@ -12,7 +12,7 @@ std::unique_ptr<Xibo::Media> VideoFactory::create(const MediaPlayerOptions& opti
 
 std::unique_ptr<Xibo::MediaPlayer> VideoFactory::createPlayer(const MediaPlayerOptions& options, int width, int height)
 {
-    auto player = std::make_unique<GstMediaPlayer>();
+    auto player = std::make_unique<GstMediaPlayer>(options);
 
     player->setVolume(options.muted == MediaPlayerOptions::Mute::Enable ? MinVolume : MaxVolume);
     player->setAspectRatio(options.geometry.scaleType);

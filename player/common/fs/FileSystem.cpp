@@ -65,7 +65,7 @@ FilePath FileSystem::currentPath()
 
 std::string FileSystem::readFromFile(const FilePath& path)
 {
-    std::ifstream in{path.string()};
+    std::ifstream in{path.string(), std::ios::binary};
 
     std::stringstream buffer;
     buffer << in.rdbuf();
@@ -75,7 +75,7 @@ std::string FileSystem::readFromFile(const FilePath& path)
 
 void FileSystem::writeToFile(const FilePath& path, const std::string& content)
 {
-    std::ofstream out(path.string());
+    std::ofstream out(path.string(), std::ios::binary);
 
     out << content;
 }

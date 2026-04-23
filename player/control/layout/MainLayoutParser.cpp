@@ -1,5 +1,7 @@
 #include "MainLayoutParser.hpp"
 
+#include "control/cache/UnsafeFaultCodes.hpp"
+#include "control/cache/UnsafeItemStore.hpp"
 #include "control/layout/MainLayoutImpl.hpp"
 #include "control/layout/MainLayoutResources.hpp"
 #include "control/region/RegionParser.hpp"
@@ -7,6 +9,7 @@
 
 #include "common/fs/FilePath.hpp"
 #include "common/fs/Resource.hpp"
+#include "common/logger/Logging.hpp"
 
 const std::string DefaultColor = "#000";
 const bool DefaultStatsEnabled = true;
@@ -90,12 +93,37 @@ std::shared_ptr<Xibo::Image> MainLayoutParser::createBackground(const MainLayout
 
 void MainLayoutParser::addRegions(Xibo::MainLayout& layout, const XmlNode& layoutNode)
 {
+    int regionCount = 0;
+    int mediaCount = 0;
+
     for (auto [nodeName, node] : layoutNode)
     {
         if (nodeName != XlfResources::RegionNode) continue;
 
-        RegionParser parser{globalStatsEnabled_};
-        auto position = parser.positionFrom(node);
-        layout.addRegion(parser.regionFrom(node), position.left, position.top, position.zorder);
+        ++regionCount;
+
+        try
+        {
+            RegionParser parser{globalStatsEnabled_, layoutId_};
+            auto position = parser.positionFrom(node);
+            auto region = parser.regionFrom(node);
+
+            mediaCount += static_cast<int>(region->mediaList().size());
+            layout.addRegion(std::move(region), position.left, position.top, position.zorder);
+        }
+        catch (const RegionParser::Error& e)
+        {
+            Log::error("[MainLayoutParser] {}", e.what());
+        }
+    }
+
+    if (regionCount == 0 || mediaCount == 0)
+    {
+        UnsafeItemStore::instance().addUnsafeItem(UnsafeItemType::Layout,
+                                                  static_cast<int>(UnsafeFaultCode::XlfNoContent),
+                                                  layoutId_,
+                                                  std::to_string(layoutId_),
+                                                  "No Regions or Widgets");
+        throw Error{"LayoutParser", layoutId_, "Layout without any Regions or Widgets"};
     }
 }

@@ -64,6 +64,26 @@ ScreenshotAction& XmrManager::screenshot()
     return screenshotAction_;
 }
 
+LayoutChangeAction& XmrManager::layoutChange()
+{
+    return layoutChangeAction_;
+}
+
+OverlayLayoutAction& XmrManager::overlayLayout()
+{
+    return overlayLayoutAction_;
+}
+
+RevertToScheduleAction& XmrManager::revertToSchedule()
+{
+    return revertToScheduleAction_;
+}
+
+CriteriaUpdateAction& XmrManager::criteriaUpdate()
+{
+    return criteriaUpdateAction_;
+}
+
 XmrStatus XmrManager::status()
 {
     return info_;
@@ -132,6 +152,21 @@ XmrMessage XmrManager::parseMessage(const std::string& jsonMessage)
     message.action = tree.get<std::string>("action");
     message.createdDt = parseCreatedDt(tree.get<std::string>("createdDt"));
     message.ttl = tree.get<int>("ttl");
+    message.layoutId = tree.get("layoutId", EmptyLayoutId);
+    message.duration = tree.get("duration", 0);
+    message.downloadRequired = tree.get("downloadRequired", false);
+
+    if (auto updates = tree.get_child_optional("criteriaUpdates"))
+    {
+        for (auto&& [_, item] : updates.value())
+        {
+            XmrMessage::CriteriaUpdate update;
+            update.metric = item.get<std::string>("metric");
+            update.value = item.get<std::string>("value");
+            update.ttl = item.get("ttl", 300);
+            message.criteriaUpdates.emplace_back(std::move(update));
+        }
+    }
 
     return message;
 }
@@ -188,6 +223,22 @@ void XmrManager::processXmrMessage(const XmrMessage& message)
     else if (message.action == "screenShot")
     {
         MainLoop::pushToUiThread([this]() { screenshotAction_(); });
+    }
+    else if (message.action == "changeLayout")
+    {
+        MainLoop::pushToUiThread([this, message]() { layoutChangeAction_(message); });
+    }
+    else if (message.action == "overlayLayout")
+    {
+        MainLoop::pushToUiThread([this, message]() { overlayLayoutAction_(message); });
+    }
+    else if (message.action == "revertToSchedule")
+    {
+        MainLoop::pushToUiThread([this]() { revertToScheduleAction_(); });
+    }
+    else if (message.action == "criteriaUpdate")
+    {
+        MainLoop::pushToUiThread([this, message]() { criteriaUpdateAction_(message); });
     }
     else
     {

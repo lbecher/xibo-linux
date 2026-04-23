@@ -28,6 +28,7 @@ public:
                                            int parentWidth,
                                            int parentHeight,
                                            bool globalStatEnabled);
+    void context(int layoutId, int regionId);
 
 protected:
     virtual MediaOptions::Type typeFrom(const XmlNode& node);
@@ -58,4 +59,6 @@ private:
 
 private:
     bool globalStatEnabled_;
+    int layoutId_ = 0;
+    int regionId_ = 0;
 };

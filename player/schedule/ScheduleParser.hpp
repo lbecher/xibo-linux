@@ -20,6 +20,7 @@ public:
 private:
     LayoutSchedule scheduleFromImpl(const XmlNode& scheduleXml);
     ScheduledLayout scheduledLayoutFrom(const XmlNode& layoutNode);
+    ScheduleCriteria criteriaFrom(const XmlNode& criteriaNode);
     DefaultScheduledLayout defaultLayoutFrom(const XmlNode& layoutNode);
     LayoutList overlayLayoutsFrom(const XmlNode& overlaysNode);
     LayoutDependants dependantsFrom(const XmlNode& dependantsNode);

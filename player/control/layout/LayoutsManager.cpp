@@ -34,23 +34,26 @@ OverlaysLoaded& LayoutsManager::overlaysFetched()
 void LayoutsManager::fetchMainLayout()
 {
     auto id = scheduler_.nextLayout();
+    Log::info("[LayoutsManager] Fetching main layout, scheduler returned id={}", id);
 
     if (id != EmptyLayoutId)
     {
         currentMainLayout_ = createLayout<MainLayoutParser>(id);
         if (currentMainLayout_)
         {
+            Log::info("[LayoutsManager] Main layout {} loaded successfully", id);
             mainLayoutFetched_(currentMainLayout_->view());
         }
         else
         {
-            fileCache_.markAsInvalid(std::to_string(id) + ".xlf");
+            Log::error("[LayoutsManager] Main layout {} failed to load, reloading queue", id);
             scheduler_.reloadQueue();
             mainLayoutFetched_(nullptr);
         }
     }
     else
     {
+        Log::error("[LayoutsManager] No valid main layout available, showing splash");
         mainLayoutFetched_(nullptr);
     }
 }
@@ -63,15 +66,17 @@ void LayoutsManager::fetchOverlays()
 
     for (int id : scheduler_.overlayLayouts())
     {
+        Log::info("[LayoutsManager] Fetching overlay layout {}", id);
         auto overlayLayout = createLayout<OverlayLayoutParser>(id);
         if (overlayLayout)
         {
+            Log::info("[LayoutsManager] Overlay layout {} loaded successfully", id);
             overlays.emplace_back(overlayLayout->view());
             overlayLayouts_.emplace(id, std::move(overlayLayout));
         }
         else
         {
-            fileCache_.markAsInvalid(std::to_string(id) + ".xlf");
+            Log::error("[LayoutsManager] Overlay layout {} failed to load, reloading queue", id);
             scheduler_.reloadQueue();
         }
     }

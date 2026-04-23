@@ -126,6 +126,12 @@ std::unique_ptr<Xibo::Media> MediaParser::mediaFrom(const XmlNode& node,
     }
 }
 
+void MediaParser::context(int layoutId, int regionId)
+{
+    layoutId_ = layoutId;
+    regionId_ = regionId;
+}
+
 MediaOptions MediaParser::baseOptionsFrom(const XmlNode& node)
 {
     auto type = typeFrom(node);
@@ -135,7 +141,7 @@ MediaOptions MediaParser::baseOptionsFrom(const XmlNode& node)
     auto stat = globalStatEnabled_ && statFrom(node);
     auto geometry = geometryFrom(node);
 
-    return MediaOptions{type, id, uri, duration, stat, geometry};
+    return MediaOptions{type, id, layoutId_, regionId_, uri, duration, stat, geometry};
 }
 
 MediaOptions::Type MediaParser::typeFrom(const XmlNode& node)
@@ -189,6 +195,7 @@ void MediaParser::attach(Xibo::Media& media, const XmlNode& node)
 
         if (parser)
         {
+            parser->context(layoutId_, regionId_);
             media.attach(parser->mediaFrom(attachedNode, 0, 0, globalStatEnabled_));  // TODO: remove 0, 0
         }
     }

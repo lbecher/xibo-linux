@@ -1,5 +1,7 @@
 #include "RegionImpl.hpp"
 
+#include "control/cache/UnsafeFaultCodes.hpp"
+#include "control/cache/UnsafeItemStore.hpp"
 #include "control/region/GetMediaPosition.hpp"
 #include "control/widgets/FixedContainer.hpp"
 
@@ -43,7 +45,17 @@ std::pair<int, int> RegionImpl::calcMediaPosition(Xibo::Media& media)
 
 void RegionImpl::start()
 {
-    assert(!mediaList_.empty());
+    if (mediaList_.empty())
+    {
+        UnsafeItemStore::instance().addUnsafeItem(UnsafeItemType::Region,
+                                                  static_cast<int>(UnsafeFaultCode::XlfNoContent),
+                                                  options_.layoutId,
+                                                  std::to_string(options_.id),
+                                                  "There are no valid widgets inside one of the regions in this layout",
+                                                  60);
+        regionExpired_(options_.id);
+        return;
+    }
 
     view_->show();
     placeMedia(FirstMediaIndex);
@@ -75,8 +87,33 @@ const MediaList& RegionImpl::mediaList() const
 
 void RegionImpl::placeMedia(size_t mediaIndex)
 {
-    currentMediaIndex_ = mediaIndex;
-    mediaList_[mediaIndex]->start();
+    if (mediaList_.empty()) return;
+
+    size_t attempts = 0;
+    size_t candidateIndex = mediaIndex;
+
+    while (attempts < mediaList_.size() &&
+           (UnsafeItemStore::instance().isUnsafeWidget(std::to_string(mediaList_[candidateIndex]->id())) ||
+            UnsafeItemStore::instance().isUnsafeMedia(std::to_string(mediaList_[candidateIndex]->id()))))
+    {
+        candidateIndex = candidateIndex + 1 >= mediaList_.size() ? FirstMediaIndex : candidateIndex + 1;
+        ++attempts;
+    }
+
+    if (attempts >= mediaList_.size())
+    {
+        UnsafeItemStore::instance().addUnsafeItem(UnsafeItemType::Region,
+                                                  static_cast<int>(UnsafeFaultCode::XlfNoContent),
+                                                  options_.layoutId,
+                                                  std::to_string(options_.id),
+                                                  "There are no valid widgets inside one of the regions in this layout",
+                                                  60);
+        regionExpired_(options_.id);
+        return;
+    }
+
+    currentMediaIndex_ = candidateIndex;
+    mediaList_[candidateIndex]->start();
 }
 
 void RegionImpl::removeMedia(size_t mediaIndex)

@@ -18,6 +18,8 @@ private:
     std::string formatGeneralInfo(const GeneralInfo& info);
     std::string formatCmsInfo(const CmsStatus& info);
     std::string formatSchedulerInfo(const SchedulerStatus& info);
+    std::string formatCriteriaInfo(const SchedulerStatus& info);
     std::string layoutsToString(const std::vector<int>& layouts);
+    std::string valuesToString(const std::vector<std::string>& values);
     std::string formatXmrInfo(const XmrStatus& info);
 };

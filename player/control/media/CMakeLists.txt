@@ -35,6 +35,7 @@ target_link_libraries(${PROJECT_NAME}
     ${GSTREAMER_LINK_LIBRARIES}
     ${WEBKITGTK_LINK_LIBRARIES}
     ${SQLITE3_LIBRARIES}
+    cache
     common
     transitions
 )

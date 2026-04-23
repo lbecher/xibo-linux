@@ -145,6 +145,16 @@ void FileCacheImpl::addToCache(const std::string& filename, const Md5Hash& hash,
     node.put(Md5Attr, hash);
     node.put(ValidAttr, hash == target);
 
+    if (hash != target)
+    {
+        Log::error("[FileCache] HASH MISMATCH for {}: calculated='{}' expected='{}' MARKING INVALID", 
+                   filename, static_cast<std::string>(hash), static_cast<std::string>(target));
+    }
+    else
+    {
+        Log::info("[FileCache] Hash OK for {}: '{}'", filename, static_cast<std::string>(hash));
+    }
+
     /* critical section, access and modify file cache buffer */
     fileCacheMutex_.lock();
     fileCache_.put_child(fullPath(filename), node);

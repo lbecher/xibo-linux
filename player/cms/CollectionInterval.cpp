@@ -30,6 +30,24 @@ struct fmt::formatter<std::atomic<int>> : fmt::formatter<int> {
 
 namespace ph = std::placeholders;
 
+namespace
+{
+    std::size_t countSuccessfulDownloads(DownloadResults& results)
+    {
+        std::size_t successCount = 0;
+
+        for (auto& result : results)
+        {
+            if (result.valid() && result.get())
+            {
+                ++successCount;
+            }
+        }
+
+        return successCount;
+    }
+}
+
 CollectionInterval::CollectionInterval(XmdsRequestSender& xmdsSender,
                                        Stats::Recorder& statsRecorder,
                                        FileCache& fileCache,
@@ -68,6 +86,7 @@ void CollectionInterval::collectNow()
 {
     if (!running_)
     {
+        Log::info("[CollectionInterval] Starting collection cycle");
         running_ = true;
         workerThread_ = std::make_unique<JoinableThread>([=]() {
             Log::debug("[CollectionInterval] Started");
@@ -94,10 +113,12 @@ void CollectionInterval::onDisplayRegistered(const ResponseResult<RegisterDispla
     auto [error, result] = registerDisplay;
     if (!error)
     {
+        Log::info("[CollectionInterval] RegisterDisplay returned status code={}", static_cast<int>(result.status.code));
         auto displayError = displayStatus(result.status);
         if (!displayError)
         {
             Log::debug("[XMDS::RegisterDisplay] Success");
+            Log::info("[CollectionInterval] Stage complete: registerDisplay");
 
             status_.registered = true;
             status_.lastChecked = DateTime::now();
@@ -107,12 +128,25 @@ void CollectionInterval::onDisplayRegistered(const ResponseResult<RegisterDispla
             auto requiredFilesResult = xmdsSender_.requiredFiles().get();
             auto scheduleResult = xmdsSender_.schedule().get();
 
+            Log::info("[CollectionInterval] Stage start: schedule");
             onSchedule(scheduleResult);
-            onRequiredFiles(requiredFilesResult);
+            Log::info("[CollectionInterval] Stage complete: schedule");
 
+            Log::info("[CollectionInterval] Stage start: requiredFiles");
+            onRequiredFiles(requiredFilesResult);
+            Log::info("[CollectionInterval] Stage complete: requiredFiles");
+
+            Log::info("[CollectionInterval] Stage start: submitLogs");
             submitLogs();
+            Log::info("[CollectionInterval] Stage complete: submitLogs");
+
+            Log::info("[CollectionInterval] Stage start: submitStats");
             submitStats();
+            Log::info("[CollectionInterval] Stage complete: submitStats");
+
+            Log::info("[CollectionInterval] Stage start: notifyStatus");
             notifyStatus();
+            Log::info("[CollectionInterval] Stage complete: notifyStatus");
         }
         sessionFinished(displayError);
     }
@@ -188,14 +222,28 @@ void CollectionInterval::onRequiredFiles(const ResponseResult<RequiredFiles::Res
         auto&& resources = result.requiredResources();
 
         status_.requiredFiles = files.size() + resources.size();
+        Log::info("[CollectionInterval] Required files received: regular={}, resources={}, total={}",
+                  files.size(),
+                  resources.size(),
+                  status_.requiredFiles);
 
         auto resourcesResult = downloader.download(resources);
         auto filesResult = downloader.download(files);
 
-        resourcesResult.wait();
-        filesResult.wait();
+        auto resourceDownloads = resourcesResult.get();
+        auto fileDownloads = filesResult.get();
+
+        auto downloadedResources = countSuccessfulDownloads(resourceDownloads);
+        auto downloadedFiles = countSuccessfulDownloads(fileDownloads);
+
+        Log::info("[CollectionInterval] Download batch finished: regular ok={}/{}, resources ok={}/{}",
+                  downloadedFiles,
+                  fileDownloads.size(),
+                  downloadedResources,
+                  resourceDownloads.size());
 
         updateMediaInventory(result);
+        Log::info("[CollectionInterval] Media inventory updated after downloads");
 
         MainLoop::pushToUiThread([this]() { filesDownloaded_(); });
     }
@@ -225,6 +273,7 @@ void CollectionInterval::onSchedule(const ResponseResult<Schedule::Result>& sche
     if (!error)
     {
         Log::debug("[XMDS::Schedule] Received");
+        Log::info("[CollectionInterval] Schedule XML received: {} bytes", result.scheduleXml.size());
         MainLoop::pushToUiThread([this, result = std::move(result)]() {
             scheduleAvailable_(LayoutSchedule::fromString(result.scheduleXml));
         });

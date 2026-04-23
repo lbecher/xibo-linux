@@ -10,6 +10,7 @@ std::string StatusScreenFormatter::formatInfo(const StatusInfo& info)
     out << "General Info:" << std::endl << formatGeneralInfo(info.general) << std::endl;
     out << "CMS Info:" << std::endl << formatCmsInfo(info.cms) << std::endl;
     out << "Schedule Info:" << std::endl << formatSchedulerInfo(info.scheduler) << std::endl;
+    out << "Criteria Info:" << std::endl << formatCriteriaInfo(info.scheduler) << std::endl;
     out << "XMR Info:" << std::endl << formatXmrInfo(info.xmr) << std::endl;
 
     return out.str();
@@ -69,6 +70,28 @@ std::string StatusScreenFormatter::layoutsToString(const std::vector<int>& layou
     for (int id : layouts)
     {
         out << std::to_string(id) << " ";
+    }
+
+    return out.str();
+}
+
+std::string StatusScreenFormatter::formatCriteriaInfo(const SchedulerStatus& info)
+{
+    std::stringstream out;
+
+    out << "Weather Criteria In Schedule - " << std::boolalpha << info.weatherCriteriaActive << std::endl;
+    out << "Active Criteria - " << valuesToString(info.activeCriteria) << std::endl;
+
+    return out.str();
+}
+
+std::string StatusScreenFormatter::valuesToString(const std::vector<std::string>& values)
+{
+    std::stringstream out;
+
+    for (auto&& value : values)
+    {
+        out << value << " ";
     }
 
     return out.str();

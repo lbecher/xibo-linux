@@ -13,6 +13,16 @@ using LayoutId = int;
 const LayoutId EmptyLayoutId = 0;
 const int DefaultScheduleId = 0;
 
+struct ScheduleCriteria
+{
+    std::string metric;
+    std::string value;
+    std::string type;
+    std::string condition;
+};
+
+using ScheduleCriterias = std::vector<ScheduleCriteria>;
+
 struct DefaultScheduledLayout
 {
     LayoutId id;
@@ -27,8 +37,11 @@ struct ScheduledLayout
     DateTime startDT;
     DateTime endDT;
     LayoutDependants dependants;
+    ScheduleCriterias criterias;
 };
 
+bool operator==(const ScheduleCriteria& first, const ScheduleCriteria& second);
+bool operator!=(const ScheduleCriteria& first, const ScheduleCriteria& second);
 bool operator==(const DefaultScheduledLayout& first, const DefaultScheduledLayout& second);
 bool operator!=(const DefaultScheduledLayout& first, const DefaultScheduledLayout& second);
 

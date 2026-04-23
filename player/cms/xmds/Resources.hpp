@@ -25,6 +25,7 @@ namespace XmdsResources
         const std::string Overlays = "overlays";
         const std::string OverlayLayout = "overlay";
         const std::string GlobalDependants = "dependants";
+        const std::string Criteria = "criteria";
 
         const std::string Generated = Parsing::xmlAttr("generated");
         const std::string ScheduleId = Parsing::xmlAttr("scheduleid");
@@ -32,6 +33,9 @@ namespace XmdsResources
         const std::string Priority = Parsing::xmlAttr("priority");
         const std::string StartDT = Parsing::xmlAttr("fromdt");
         const std::string EndDT = Parsing::xmlAttr("todt");
+        const std::string CriteriaMetric = Parsing::xmlAttr("metric");
+        const std::string CriteriaType = Parsing::xmlAttr("type");
+        const std::string CriteriaCondition = Parsing::xmlAttr("condition");
         const std::string LocalDependants = "dependents";
         const std::string DependantFile = "file";
     }

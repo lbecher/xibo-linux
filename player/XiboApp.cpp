@@ -6,9 +6,10 @@
 #include "config/PlayerSettings.hpp"
 
 #include "control/ApplicationWindow.hpp"
+#include "control/cache/UnsafeItemStore.hpp"
 #include "control/layout/LayoutsManager.hpp"
 #include "control/media/MediaParsersRepo.hpp"
-#include "control/media/webview/LocalWebServer.hpp"
+#include "control/server/EmbeddedServer.hpp"
 #include "control/screenshot/ScreeShoterFactory.hpp"
 #include "control/screenshot/ScreenShotInterval.hpp"
 
@@ -25,6 +26,7 @@
 #include "common/crypto/RsaManager.hpp"
 #include "common/fs/FileSystem.hpp"
 #include "common/logger/Logging.hpp"
+#include "common/parsing/Parsing.hpp"
 #include "common/storage/FileCacheImpl.hpp"
 #include "common/system/System.hpp"
 
@@ -48,8 +50,9 @@ XiboApp::XiboApp(const std::string& name) :
     fileCache_(std::make_unique<FileCacheImpl>()),
     scheduler_(std::make_unique<Scheduler>(*fileCache_)),
     statsRecorder_(std::make_unique<Stats::Recorder>()),
-    webserver_(std::make_shared<LocalWebServer>())
+    webserver_(std::make_shared<EmbeddedServer>())
 {
+    Log::info("[XiboApp] Startup stage: constructing application");
     if (!FileSystem::exists(AppConfig::cmsSettingsPath()))
         throw PlayerRuntimeError{"XiboApp", "Update CMS settings using player options app"};
 
@@ -58,19 +61,116 @@ XiboApp::XiboApp(const std::string& name) :
     cmsSettings_.fromFile(AppConfig::cmsSettingsPath());
     playerSettings_.fromFile(AppConfig::playerSettingsPath());
     fileCache_->loadFrom(AppConfig::cachePath());
+    Log::info("[XiboApp] Startup stage: settings and cache loaded");
 
     System::preventSleep();
     AppConfig::resourceDirectory(cmsSettings_.resourcesPath());
     checkResourceDirectory();
+    Log::info("[XiboApp] Startup stage: resources checked at {}", cmsSettings_.resourcesPath().value().string());
 
     webserver_->setRootDirectory(cmsSettings_.resourcesPath());
+    webserver_->setInfoFactory([this]() {
+        JsonNode root;
+        auto general = collectGeneralInfo();
+        auto scheduler = scheduler_->status();
+        auto xmr = xmrManager_ ? xmrManager_->status() : XmrStatus{};
+
+        root.put("hardwareKey", static_cast<const std::string&>(static_cast<const Md5Hash&>(System::hardwareKey())));
+        root.put("displayName", general.displayName);
+        root.put("timeZone", DateTime::currentTimezone());
+        root.put("cmsAddress", general.cmsAddress);
+        root.put("screenShotInterval", general.screenShotInterval);
+        root.put("currentLayout", scheduler.currentLayout);
+        root.put("generatedTime", scheduler.generatedTime);
+        root.put("controlCount", controlCount_);
+        root.put("lastTriggerCode", lastTriggerCode_);
+        root.put("lastTriggerSourceId", lastTriggerSourceId_);
+        root.put("lastDurationOperation", lastDurationOperation_);
+        root.put("lastDurationSourceId", lastDurationSourceId_);
+        root.put("lastDuration", lastDuration_);
+        root.put("lastFaultCode", lastFaultCode_);
+        root.put("lastFaultKey", lastFaultKey_);
+        root.put("lastFaultTtl", lastFaultTtl_);
+        root.put("lastFaultReason", lastFaultReason_);
+        root.put("unsafeList", UnsafeItemStore::instance().listAsString());
+        root.put("unsafeListJson", UnsafeItemStore::instance().listAsJsonString());
+        root.put("xmr.host", xmr.host);
+        root.put("xmr.lastHeartbeat", xmr.lastHeartbeatDt.string());
+        root.put("xmr.lastMessage", xmr.lastMessageDt.string());
+
+        JsonNode criteria;
+        for (auto&& value : scheduler.activeCriteria)
+        {
+            JsonNode item;
+            item.put("", value);
+            criteria.push_back(std::make_pair("", item));
+        }
+        root.add_child("criteria", criteria);
+
+        return Parsing::jsonToString(root);
+    });
+    webserver_->setCriteriaReceived([this](const CriteriaRequests& updates) {
+        MainLoop::pushToUiThread([this, updates]() {
+            for (auto&& update : updates)
+            {
+                scheduler_->addOrReplaceCriteria(update.metric, update.value, update.ttl);
+            }
+        });
+    });
+    webserver_->setTriggerReceived([this](const TriggerRequest& request) {
+        MainLoop::pushToUiThread([this, request]() {
+            ++controlCount_;
+            lastTriggerCode_ = request.trigger;
+            lastTriggerSourceId_ = request.id;
+
+            Log::info("[Control] Trigger received: code={}, sourceId={}", request.trigger, request.id);
+        });
+    });
+    webserver_->setDurationReceived([this](const DurationRequest& request) {
+        MainLoop::pushToUiThread([this, request]() {
+            ++controlCount_;
+            lastDurationOperation_ = request.operation;
+            lastDurationSourceId_ = request.id;
+            lastDuration_ = request.duration;
+
+            Log::info("[Control] Duration request received: operation={}, sourceId={}, duration={}",
+                      request.operation,
+                      request.id,
+                      request.duration);
+        });
+    });
+    webserver_->setFaultReceived([this](const FaultRequest& request) {
+        MainLoop::pushToUiThread([this, request]() {
+            ++controlCount_;
+            lastFaultCode_ = request.code;
+            lastFaultKey_ = request.key;
+            lastFaultTtl_ = request.ttl;
+            lastFaultReason_ = request.reason;
+
+            auto widgetSeparator = request.key.find('_');
+            if (widgetSeparator != std::string::npos && widgetSeparator + 1 < request.key.size())
+            {
+                UnsafeItemStore::instance().addUnsafeWidget(
+                    request.code, request.key.substr(widgetSeparator + 1), request.reason, request.ttl);
+            }
+
+            Log::info("[Control] Fault request received: code={}, key={}, ttl={}, reason={}",
+                      request.code,
+                      request.key,
+                      request.ttl,
+                      request.reason);
+        });
+    });
     webserver_->run(playerSettings_.embeddedServerPort());
+    Log::info("[XiboApp] Startup stage: embedded server listening on {}",
+              playerSettings_.embeddedServerPort().value());
 
     HttpClient::instance().setProxyServer(cmsSettings_.proxy());
     RsaManager::instance().load();
     xmrManager_ = createXmrManager();
 
     MediaParsersRepo::init();
+    Log::info("[XiboApp] Startup stage: XMR and media parsers initialized");
 
     mainLoop_->setShutdownAction([this]() {
         layoutManager_.reset();
@@ -104,12 +204,55 @@ std::unique_ptr<XmrManager> XiboApp::createXmrManager()
         screenShotInterval_->takeScreenShot();
     });
 
+    manager->layoutChange().connect([this](const XmrMessage& message) {
+        CHECK_UI_THREAD();
+        Log::info("[XMR] Applying temporary layout override: {}", message.layoutId);
+
+        if (message.downloadRequired)
+        {
+            collectionInterval_->collectNow();
+        }
+
+        scheduler_->applyLayoutOverride(message.layoutId, message.createdDt, message.duration);
+    });
+
+    manager->overlayLayout().connect([this](const XmrMessage& message) {
+        CHECK_UI_THREAD();
+        Log::info("[XMR] Applying temporary overlay layout: {}", message.layoutId);
+
+        if (message.downloadRequired)
+        {
+            collectionInterval_->collectNow();
+        }
+
+        scheduler_->addOverlayOverride(message.layoutId, message.createdDt, message.duration);
+    });
+
+    manager->revertToSchedule().connect([this]() {
+        CHECK_UI_THREAD();
+        Log::info("[XMR] Reverting to scheduled content");
+
+        scheduler_->clearOverrides();
+    });
+
+    manager->criteriaUpdate().connect([this](const XmrMessage& message) {
+        CHECK_UI_THREAD();
+        Log::info("[XMR] Applying {} criteria updates", message.criteriaUpdates.size());
+
+        for (auto&& update : message.criteriaUpdates)
+        {
+            scheduler_->addOrReplaceCriteria(update.metric, update.value, update.ttl);
+        }
+    });
+
     return manager;
 }
 
 int XiboApp::run()
 {
+    Log::info("[XiboApp] Run stage: creating main window");
     mainWindow_ = createMainWindow();
+    Log::info("[XiboApp] Run stage: creating layout manager");
     layoutManager_ = createLayoutManager();
 
     playerSettings_.statsEnabled().valueChanged().connect(
@@ -119,17 +262,29 @@ int XiboApp::run()
         std::make_unique<XmdsRequestSender>(cmsSettings_.address(), cmsSettings_.key(), cmsSettings_.displayId());
     screenShotInterval_ = createScreenshotInterval(*xmdsManager_, *mainWindow_);
     collectionInterval_ = createCollectionInterval(*xmdsManager_);
+    Log::info("[XiboApp] Run stage: screenshot and collection intervals created");
 
     collectionInterval_->setCurrentLayoutId(scheduler_->currentLayoutId());
 
     scheduler_->layoutUpdated().connect(
-        [this]() { collectionInterval_->setCurrentLayoutId(scheduler_->currentLayoutId()); });
+        [this]() {
+            auto currentLayoutId = scheduler_->currentLayoutId();
+            Log::info("[XiboApp] Scheduler layoutUpdated: currentLayoutId={}", currentLayoutId);
+            collectionInterval_->setCurrentLayoutId(currentLayoutId);
+        });
 
+    Log::info("[XiboApp] Run stage: loading cached schedule from {}", AppConfig::schedulePath().string());
     scheduler_->reloadSchedule(LayoutSchedule::fromFile(AppConfig::schedulePath()));
     scheduler_->scheduleUpdated().connect(
-        [](const LayoutSchedule& schedule) { schedule.toFile(AppConfig::schedulePath()); });
+        [](const LayoutSchedule& schedule) {
+            Log::info("[XiboApp] Scheduler emitted scheduleUpdated: regularLayouts={}, overlayLayouts={}",
+                      schedule.regularLayouts.size(),
+                      schedule.overlayLayouts.size());
+            schedule.toFile(AppConfig::schedulePath());
+        });
 
     mainLoop_->started().connect([this] {
+        Log::info("[XiboApp] Main loop started: triggering initial collection");
         collectionInterval_->collectNow();
         mainWindow_->showAll();
     });
@@ -137,7 +292,6 @@ int XiboApp::run()
     return mainLoop_->run(*mainWindow_);
 }
 
-// FIXME temporary workaround until plugin init
 Uri XiboApp::localAddress()
 {
     return g_app->webserver_->address();
@@ -175,11 +329,13 @@ std::unique_ptr<LayoutsManager> XiboApp::createLayoutManager()
         CHECK_UI_THREAD();
         if (layout)
         {
+            Log::info("[XiboApp] Main window switching from splash to layout");
             mainWindow_->setMainLayout(layout);
             layout->showAll();
         }
         else
         {
+            Log::error("[XiboApp] Main window showing splash because no layout was fetched");
             mainWindow_->showSplashScreen();
         }
     });
@@ -238,10 +394,26 @@ std::unique_ptr<CollectionInterval> XiboApp::createCollectionInterval(XmdsReques
         std::bind(&CollectionInterval::updateInterval, interval.get(), ph::_1));
 
     interval->collectionFinished().connect(std::bind(&XiboApp::onCollectionFinished, this, ph::_1));
-    interval->scheduleAvailable().connect(std::bind(&Scheduler::reloadSchedule, scheduler_.get(), ph::_1));
-    interval->filesDownloaded().connect(std::bind(&Scheduler::reloadQueue, scheduler_.get()));
+    interval->scheduleAvailable().connect([this](LayoutSchedule schedule) {
+        CHECK_UI_THREAD();
+        Log::info("[XiboApp] Collection provided schedule: regularLayouts={}, overlayLayouts={}",
+                  schedule.regularLayouts.size(),
+                  schedule.overlayLayouts.size());
+        scheduler_->reloadSchedule(std::move(schedule));
+    });
+    interval->filesDownloaded().connect([this]() {
+        CHECK_UI_THREAD();
+        auto invalidFiles = fileCache_->invalidFiles();
+        Log::info("[XiboApp] Files downloaded signal received: invalidFilesRemaining={}", invalidFiles.size());
+        for (auto&& file : invalidFiles)
+        {
+            Log::error("[XiboApp] File still invalid after download cycle: {}", file);
+        }
+        scheduler_->reloadQueue();
+    });
     interval->settingsUpdated().connect([this](const PlayerSettings& settings) {
         CHECK_UI_THREAD();
+        Log::info("[XiboApp] Collection updated player settings from CMS");
         playerSettings_.fromFields(settings);
         playerSettings_.saveTo(AppConfig::playerSettingsPath());
     });
@@ -267,5 +439,9 @@ void XiboApp::onCollectionFinished(const PlayerError& error)
     if (error)
     {
         Log::error("[CollectionInterval] {}", error);
+    }
+    else
+    {
+        Log::info("[CollectionInterval] Cycle finished successfully");
     }
 }

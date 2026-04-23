@@ -1,5 +1,7 @@
 #include "GstMediaPlayer.hpp"
 
+#include "control/cache/UnsafeFaultCodes.hpp"
+#include "control/cache/UnsafeItemStore.hpp"
 #include "common/logger/Logging.hpp"
 #include "common/types/Uri.hpp"
 #include "common/constants.hpp"
@@ -7,10 +9,11 @@
 
 #include <gst/gst.h>
 
-GstMediaPlayer::GstMediaPlayer() :
+GstMediaPlayer::GstMediaPlayer(const MediaPlayerOptions& options) :
     playbin_(gst_element_factory_make("playbin", "playbin")),
     videoSink_(gst_element_factory_make("gtkglsink", "gtksink")),
-    glSinkBin_(gst_element_factory_make("glsinkbin", "glsinkbin"))
+    glSinkBin_(gst_element_factory_make("glsinkbin", "glsinkbin")),
+    options_(options)
 {
     if (!playbin_) throw Error{"GstMediaPlayer", "Unable to create player: playbin is missing."};
     if (!videoSink_) throw Error{"GstMediaPlayer", "Unable to create player: gtkglsink is missing."};
@@ -118,11 +121,22 @@ gboolean GstMediaPlayer::busMessageWatch(GstBus* /*bus*/, GstMessage* msg, gpoin
         }
         case GST_MESSAGE_ERROR:
         {
+            assert(data);
+            auto player = reinterpret_cast<GstMediaPlayer*>(data);
             GError* err = nullptr;
             gchar* debug_info = nullptr;
 
             gst_message_parse_error(msg, &err, &debug_info);
             Log::error("[GstMediaPlayer] Error from element {}: {}", msg->src->name, err->message);
+            player->stop();
+            UnsafeItemStore::instance().addUnsafeItem(UnsafeItemType::Media,
+                                                      static_cast<int>(UnsafeFaultCode::VideoUnexpected),
+                                                      player->options_.layoutId,
+                                                      std::to_string(player->options_.id),
+                                                      std::string{"Video Failed: "} +
+                                                          (err && err->message ? err->message : "unknown error"),
+                                                      120);
+            player->playbackFinished_();
             if (debug_info)
             {
                 Log::debug("[GstMediaPlayer] Debug details: {}", debug_info);

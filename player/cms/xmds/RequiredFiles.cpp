@@ -1,6 +1,7 @@
 #include "RequiredFiles.hpp"
 
 #include "cms/xmds/Resources.hpp"
+#include "common/logger/Logging.hpp"
 
 namespace Resources = XmdsResources::RequiredFiles;
 
@@ -74,6 +75,8 @@ RegularFile Soap::ResponseParser<RequiredFiles::Result>::parseRegularFile(const 
     auto md5 = Md5Hash{attrs.get<std::string>(Resources::RegularFile::MD5)};
     auto downloadType = toDownloadType(attrs.get<std::string>(Resources::RegularFile::DownloadType));
     auto [path, name] = parseFileNameAndPath(downloadType, fileType, attrs);
+
+    Log::info("[RequiredFiles] Parsed regular file - id: {}, name: {}, md5: {}", id, name, static_cast<std::string>(md5));
 
     return RegularFile{id, size, md5, path, name, fileType, downloadType};
 }

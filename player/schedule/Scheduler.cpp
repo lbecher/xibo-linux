@@ -1,7 +1,10 @@
 #include "Scheduler.hpp"
 
+#include "control/cache/UnsafeItemStore.hpp"
 #include "common/dt/DateTime.hpp"
 #include "common/logger/Logging.hpp"
+
+#include <algorithm>
 
 Scheduler::Scheduler(const FileCache& fileCache) : fileCache_{fileCache}, schedule_{} {}
 
@@ -20,8 +23,18 @@ void Scheduler::reloadQueue()
 {
     assert(schedule_);
 
-    auto current = currentLayoutId();
-    auto overlays = overlayLayouts();
+    auto current = layoutOverride_ ? layoutOverride_->layout.id : regularQueue_.current();
+    auto overlays = overlayQueue_.overlays();
+    for (auto&& layout : overlayOverrides_)
+    {
+        if (std::find(overlays.begin(), overlays.end(), layout.id) == overlays.end())
+        {
+            overlays.push_back(layout.id);
+        }
+    }
+
+    cleanupExpiredOverrides();
+    cleanupExpiredCriteria();
 
     regularQueue_ = regularQueueFrom(schedule_.value());
     overlayQueue_ = overlayQueueFrom(schedule_.value());
@@ -31,13 +44,80 @@ void Scheduler::reloadQueue()
     updateCurrentOverlays(overlays);
 }
 
+void Scheduler::applyLayoutOverride(LayoutId id, const DateTime& createdDt, int duration)
+{
+    cleanupExpiredOverrides();
+
+    LayoutOverride overrideState;
+    overrideState.layout = ScheduledLayout{DefaultScheduleId, id, 0, createdDt - DateTime::Seconds(1), {}, {}, {}};
+    overrideState.oneShot = duration == 0;
+    overrideState.played = false;
+
+    if (!overrideState.oneShot)
+    {
+        overrideState.layout.endDT = createdDt + DateTime::Seconds(duration);
+    }
+
+    layoutOverride_ = std::move(overrideState);
+    if (schedule_) restartTimer();
+    layoutUpdated_();
+}
+
+void Scheduler::addOverlayOverride(LayoutId id, const DateTime& createdDt, int duration)
+{
+    cleanupExpiredOverrides();
+
+    overlayOverrides_.erase(
+        std::remove_if(overlayOverrides_.begin(),
+                       overlayOverrides_.end(),
+                       [id](const ScheduledLayout& layout) { return layout.id == id; }),
+        overlayOverrides_.end());
+
+    overlayOverrides_.push_back(
+        ScheduledLayout{DefaultScheduleId, id, 0, createdDt, createdDt + DateTime::Seconds(duration), {}, {}});
+    if (schedule_) restartTimer();
+    overlaysUpdated_();
+}
+
+void Scheduler::clearOverrides()
+{
+    cleanupExpiredOverrides();
+
+    auto hadLayoutOverride = layoutOverride_.has_value();
+    auto hadOverlayOverrides = !overlayOverrides_.empty();
+
+    layoutOverride_ = {};
+    overlayOverrides_.clear();
+    if (schedule_) restartTimer();
+
+    if (hadLayoutOverride)
+    {
+        layoutUpdated_();
+    }
+
+    if (hadOverlayOverrides)
+    {
+        overlaysUpdated_();
+    }
+}
+
+void Scheduler::addOrReplaceCriteria(const std::string& metric, const std::string& value, int ttl)
+{
+    criteria_[metric] = ActiveCriteria{value, DateTime::now() + DateTime::Seconds(ttl)};
+
+    if (schedule_)
+    {
+        reloadQueue();
+    }
+}
+
 RegularLayoutQueue Scheduler::regularQueueFrom(const LayoutSchedule& schedule)
 {
     RegularLayoutQueue queue;
 
     for (auto&& layout : schedule.regularLayouts)
     {
-        if (layoutOnSchedule(layout) && layoutValid(layout))
+        if (layoutOnSchedule(layout) && layoutValid(layout) && layoutCriteriaActive(layout))
         {
             queue.add(layout);
         }
@@ -57,7 +137,7 @@ OverlayLayoutQueue Scheduler::overlayQueueFrom(const LayoutSchedule& schedule)
 
     for (auto&& layout : schedule.overlayLayouts)
     {
-        if (layoutOnSchedule(layout) && layoutValid(layout))
+        if (layoutOnSchedule(layout) && layoutValid(layout) && layoutCriteriaActive(layout))
         {
             queue.add(layout);
         }
@@ -103,6 +183,8 @@ bool Scheduler::layoutValid(const Layout& layout) const
 {
     assert(schedule_);
 
+    if (UnsafeItemStore::instance().isUnsafeLayout(layout.id)) return false;
+
     auto layoutFile = std::to_string(layout.id) + ".xlf";
     if (!fileCache_.valid(layoutFile)) return false;
 
@@ -127,17 +209,56 @@ bool Scheduler::layoutValid(const Layout& layout) const
 
 LayoutId Scheduler::nextLayout() const
 {
+    const_cast<Scheduler*>(this)->cleanupExpiredOverrides();
+    if (const_cast<Scheduler*>(this)->cleanupExpiredCriteria() && schedule_)
+    {
+        const_cast<Scheduler*>(this)->reloadQueue();
+    }
+
+    if (hasActiveLayoutOverride() && layoutValid(layoutOverride_->layout))
+    {
+        layoutOverride_->played = true;
+        return layoutOverride_->layout.id;
+    }
+
     return regularQueue_.next();
 }
 
 LayoutId Scheduler::currentLayoutId() const
 {
+    const_cast<Scheduler*>(this)->cleanupExpiredOverrides();
+    if (const_cast<Scheduler*>(this)->cleanupExpiredCriteria() && schedule_)
+    {
+        const_cast<Scheduler*>(this)->reloadQueue();
+    }
+
+    if (hasActiveLayoutOverride())
+    {
+        return layoutOverride_->layout.id;
+    }
+
     return regularQueue_.current();
 }
 
 OverlaysIds Scheduler::overlayLayouts() const
 {
-    return overlayQueue_.overlays();
+    const_cast<Scheduler*>(this)->cleanupExpiredOverrides();
+    if (const_cast<Scheduler*>(this)->cleanupExpiredCriteria() && schedule_)
+    {
+        const_cast<Scheduler*>(this)->reloadQueue();
+    }
+
+    auto overlays = overlayQueue_.overlays();
+
+    for (auto&& layout : overlayOverrides_)
+    {
+        if (layoutValid(layout) && std::find(overlays.begin(), overlays.end(), layout.id) == overlays.end())
+        {
+            overlays.push_back(layout.id);
+        }
+    }
+
+    return overlays;
 }
 
 SignalScheduleUpdated& Scheduler::scheduleUpdated()
@@ -169,11 +290,24 @@ DateTime Scheduler::closestLayoutDt()
         if (now < layout.endDT && layout.endDT < closestDt) closestDt = layout.endDT;
     }
 
+    if (layoutOverride_ && !layoutOverride_->oneShot && now < layoutOverride_->layout.endDT &&
+        layoutOverride_->layout.endDT < closestDt)
+    {
+        closestDt = layoutOverride_->layout.endDT;
+    }
+
+    for (auto&& layout : overlayOverrides_)
+    {
+        if (now < layout.endDT && layout.endDT < closestDt) closestDt = layout.endDT;
+    }
+
     return closestDt;
 }
 
 void Scheduler::restartTimer()
 {
+    if (!schedule_) return;
+
     auto dt = closestLayoutDt();
     auto duration = (dt - DateTime::now()).total_seconds();
 
@@ -193,6 +327,10 @@ SignalLayoutsUpdated& Scheduler::layoutUpdated()
 SchedulerStatus Scheduler::status() const
 {
     assert(schedule_);
+    if (const_cast<Scheduler*>(this)->cleanupExpiredCriteria())
+    {
+        const_cast<Scheduler*>(this)->reloadQueue();
+    }
 
     SchedulerStatus status;
 
@@ -202,6 +340,11 @@ SchedulerStatus Scheduler::status() const
 
     status.generatedTime = schedule_->generatedTime.string();
     status.currentLayout = currentLayoutId();
+    status.weatherCriteriaActive = isWeatherCriteriaActive();
+    for (auto&& [metric, criteria] : criteria_)
+    {
+        status.activeCriteria.emplace_back(metric + ": " + criteria.value);
+    }
 
     return status;
 }
@@ -221,6 +364,11 @@ int Scheduler::scheduleIdBy(LayoutId id) const
 boost::optional<ScheduledLayout> Scheduler::layoutById(int id) const
 {
     assert(schedule_);
+
+    if (layoutOverride_ && layoutOverride_->layout.id == id)
+    {
+        return layoutOverride_->layout;
+    }
 
     {
         auto&& regularLayouts = schedule_->regularLayouts;
@@ -242,6 +390,123 @@ boost::optional<ScheduledLayout> Scheduler::layoutById(int id) const
     return {};
 }
 
+void Scheduler::cleanupExpiredOverrides()
+{
+    auto now = DateTime::now();
+
+    if (layoutOverride_)
+    {
+        auto expired = (!layoutOverride_->oneShot && layoutOverride_->layout.endDT <= now) ||
+            (layoutOverride_->oneShot && layoutOverride_->played);
+        if (expired)
+        {
+            layoutOverride_ = {};
+        }
+    }
+
+    overlayOverrides_.erase(std::remove_if(overlayOverrides_.begin(),
+                                           overlayOverrides_.end(),
+                                           [now](const ScheduledLayout& layout) { return layout.endDT <= now; }),
+                            overlayOverrides_.end());
+}
+
+bool Scheduler::cleanupExpiredCriteria()
+{
+    auto now = DateTime::now();
+    auto removed = false;
+
+    for (auto it = criteria_.begin(); it != criteria_.end();)
+    {
+        if (it->second.expiresAt <= now)
+        {
+            it = criteria_.erase(it);
+            removed = true;
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    return removed;
+}
+
+bool Scheduler::hasActiveLayoutOverride() const
+{
+    return layoutOverride_.has_value();
+}
+
+bool Scheduler::hasActiveOverlayOverrides() const
+{
+    return !overlayOverrides_.empty();
+}
+
+bool Scheduler::layoutCriteriaActive(const ScheduledLayout& layout) const
+{
+    for (auto&& criteria : layout.criterias)
+    {
+        if (!criteriaActive(criteria))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Scheduler::criteriaActive(const ScheduleCriteria& scheduleCriteria) const
+{
+    auto it = criteria_.find(scheduleCriteria.metric);
+    if (it == criteria_.end())
+    {
+        return false;
+    }
+
+    const auto& criteria = it->second;
+    if (criteria.expiresAt <= DateTime::now())
+    {
+        return false;
+    }
+
+    if (scheduleCriteria.condition == "set") return true;
+    if (scheduleCriteria.condition == "eq") return scheduleCriteria.value == criteria.value;
+    if (scheduleCriteria.condition == "neq") return scheduleCriteria.value != criteria.value;
+    if (scheduleCriteria.condition == "contains") return scheduleCriteria.value.find(criteria.value) != std::string::npos;
+    if (scheduleCriteria.condition == "ncontains") return scheduleCriteria.value.find(criteria.value) == std::string::npos;
+
+    try
+    {
+        auto criteriaValue = std::stoi(criteria.value);
+        auto scheduleValue = std::stoi(scheduleCriteria.value);
+
+        if (scheduleCriteria.condition == "lt") return criteriaValue < scheduleValue;
+        if (scheduleCriteria.condition == "lte") return criteriaValue <= scheduleValue;
+        if (scheduleCriteria.condition == "gte") return criteriaValue >= scheduleValue;
+        if (scheduleCriteria.condition == "gt") return criteriaValue > scheduleValue;
+    }
+    catch (const std::exception&)
+    {
+        return false;
+    }
+
+    return false;
+}
+
+bool Scheduler::isWeatherCriteriaActive() const
+{
+    if (!schedule_) return false;
+
+    auto hasWeatherCriteria = [](const LayoutList& layouts) {
+        return std::any_of(layouts.begin(), layouts.end(), [](const ScheduledLayout& layout) {
+            return std::any_of(layout.criterias.begin(), layout.criterias.end(), [](const ScheduleCriteria& criteria) {
+                return criteria.type == "weather";
+            });
+        });
+    };
+
+    return hasWeatherCriteria(schedule_->regularLayouts) || hasWeatherCriteria(schedule_->overlayLayouts);
+}
+
 template <typename LayoutsList>
 void Scheduler::fillSchedulerStatus(SchedulerStatus& status, const LayoutsList& layouts) const
 {
@@ -250,7 +515,7 @@ void Scheduler::fillSchedulerStatus(SchedulerStatus& status, const LayoutsList& 
         if (layoutValid(layout))
         {
             status.validLayouts.emplace_back(layout.id);
-            if (layoutOnSchedule(layout))
+            if (layoutOnSchedule(layout) && layoutCriteriaActive(layout))
             {
                 status.scheduledLayouts.emplace_back(layout.id);
             }

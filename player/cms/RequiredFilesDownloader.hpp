@@ -54,6 +54,8 @@ private:
     DownloadResults downloadAll(const RequiredFilesSet<RequiredFileType>& requiredFiles)
     {
         DownloadResults results;
+        std::size_t queuedCount = 0;
+        std::size_t skippedCount = 0;
 
         for (auto&& file : requiredFiles)
         {
@@ -61,13 +63,25 @@ private:
 
             if (shouldBeDownloaded(file))
             {
+                Log::info("[RequiredFilesDownloader] Queuing download: {}", file.name());
                 auto result = tryDownloadRequiredFile(file);
                 if (result.valid())
                 {
                     results.emplace_back(std::move(result));
+                    ++queuedCount;
                 }
             }
+            else
+            {
+                Log::info("[RequiredFilesDownloader] Skipping already valid file: {}", file.name());
+                ++skippedCount;
+            }
         }
+
+        Log::info("[RequiredFilesDownloader] Batch prepared: requested={}, queued={}, skipped={}",
+                  requiredFiles.size(),
+                  queuedCount,
+                  skippedCount);
 
         return results;
     }

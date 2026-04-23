@@ -8,6 +8,7 @@ struct RegionOptions
         Enable
     };
 
+    int layoutId;
     int id;
     int width;
     int height;

@@ -189,3 +189,42 @@ TEST_F(SchedulerTests, OverlayReloadQueueWithNewLayouts)
     EXPECT_EQ(scheduler->overlayLayouts(), (std::vector{DefaultTestId + 1, DefaultTestId + 3}));
     ASSERT_TRUE(slot.called(2));
 }
+
+TEST_F(SchedulerTests, LayoutOverridePlaysOnceWhenDurationIsZero)
+{
+    auto scheduler = construct();
+    ON_CALL(*fileCache_, valid(std::to_string(DefaultTestId + 9) + ".xlf")).WillByDefault(testing::Return(true));
+
+    scheduler->reloadSchedule(makeRegularSchedule(DefaultTestId, DefaultTestId + 1));
+    scheduler->applyLayoutOverride(DefaultTestId + 9, DateTime::now(), 0);
+
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 9);
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 1);
+}
+
+TEST_F(SchedulerTests, LayoutOverrideStaysActiveWhileDurationHasNotExpired)
+{
+    auto scheduler = construct();
+    ON_CALL(*fileCache_, valid(std::to_string(DefaultTestId + 9) + ".xlf")).WillByDefault(testing::Return(true));
+
+    scheduler->reloadSchedule(makeRegularSchedule(DefaultTestId, DefaultTestId + 1));
+    scheduler->applyLayoutOverride(DefaultTestId + 9, DateTime::now(), 60);
+
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 9);
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 9);
+}
+
+TEST_F(SchedulerTests, OverlayOverrideIsMergedUntilReverted)
+{
+    auto scheduler = construct();
+    ON_CALL(*fileCache_, valid(std::to_string(DefaultTestId + 9) + ".xlf")).WillByDefault(testing::Return(true));
+
+    scheduler->reloadSchedule(makeOverlaySchedule(DefaultTestId + 1, DefaultTestId + 2));
+    scheduler->addOverlayOverride(DefaultTestId + 9, DateTime::now(), 60);
+
+    EXPECT_EQ(scheduler->overlayLayouts(), (std::vector{DefaultTestId + 1, DefaultTestId + 2, DefaultTestId + 9}));
+
+    scheduler->clearOverrides();
+
+    EXPECT_EQ(scheduler->overlayLayouts(), (std::vector{DefaultTestId + 1, DefaultTestId + 2}));
+}

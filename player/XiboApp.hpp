@@ -1,6 +1,7 @@
 #pragma once
 
 #include "control/ApplicationWindow.hpp"
+#include "control/server/EmbeddedServer.hpp"
 #include "control/status/GeneralInfo.hpp"
 #include "control/widgets/gtk/WindowGtk.hpp"
 
@@ -20,7 +21,6 @@ class ScreenShotInterval;
 class PlayerError;
 class XmrManager;
 using ApplicationWindowGtk = ApplicationWindow<WindowGtk>;
-class LocalWebServer;
 namespace Stats
 {
     class Recorder;
@@ -55,6 +55,16 @@ private:
 private:
     PlayerSettings playerSettings_;
     CmsSettings cmsSettings_;
+    int controlCount_ = 0;
+    std::string lastTriggerCode_;
+    int lastTriggerSourceId_ = 0;
+    std::string lastDurationOperation_;
+    int lastDurationSourceId_ = 0;
+    int lastDuration_ = 0;
+    int lastFaultCode_ = 0;
+    std::string lastFaultKey_;
+    int lastFaultTtl_ = 0;
+    std::string lastFaultReason_;
 
     std::unique_ptr<MainLoop> mainLoop_;
     std::unique_ptr<FileCache> fileCache_;
@@ -65,6 +75,6 @@ private:
     std::unique_ptr<Stats::Recorder> statsRecorder_;
     std::unique_ptr<XmrManager> xmrManager_;
     std::shared_ptr<ApplicationWindowGtk> mainWindow_;
-    std::shared_ptr<LocalWebServer> webserver_;
+    std::shared_ptr<EmbeddedServer> webserver_;
     std::unique_ptr<LayoutsManager> layoutManager_;
 };

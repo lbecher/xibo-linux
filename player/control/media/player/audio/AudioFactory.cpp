@@ -11,7 +11,7 @@ std::unique_ptr<Xibo::Media> AudioFactory::create(const MediaPlayerOptions& opti
 
 std::unique_ptr<Xibo::MediaPlayer> AudioFactory::createPlayer(const MediaPlayerOptions& options)
 {
-    auto player = std::make_unique<GstMediaPlayer>();
+    auto player = std::make_unique<GstMediaPlayer>(options);
 
     player->setVolume(options.volume);
     player->load(options.uri);

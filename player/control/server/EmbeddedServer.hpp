@@ -1,13 +1,22 @@
+#pragma once
+
+#include "control/server/CriteriaController.hpp"
+#include "control/server/DurationController.hpp"
+#include "control/server/HookController.hpp"
+#include "control/server/InfoController.hpp"
+#include "control/server/FaultController.hpp"
+#include "control/server/RestrictiveFileModule.hpp"
+
+#include "common/JoinableThread.hpp"
+#include "common/fs/FilePath.hpp"
+#include "common/types/Uri.hpp"
+
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/config.hpp>
-
-#include "common/JoinableThread.hpp"
-#include "common/fs/FilePath.hpp"
-#include "common/types/Uri.hpp"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -35,7 +44,13 @@ class Session : public std::enable_shared_from_this<Session>
     };
 
 public:
-    Session(tcp::socket&& socket, const FilePath& rootDirectory);
+    Session(tcp::socket&& socket,
+            const FilePath& rootDirectory,
+            const InfoResponseFactory& infoFactory,
+            const CriteriaReceived& criteriaReceived,
+            const TriggerReceived& triggerReceived,
+            const DurationReceived& durationReceived,
+            const FaultReceived& faultReceived);
 
     void run();
     void close();
@@ -48,21 +63,31 @@ private:
 private:
     net::ip::tcp::socket m_socket;
     beast::flat_buffer m_buffer;
-    const FilePath m_rootDirectory;
-    http::request<http::string_body> m_request;
+    HttpRequest request_;
     std::shared_ptr<void> m_response;
-    SendLambda m_lambda;
+    SendLambda send_;
+    InfoController infoController_;
+    CriteriaController criteriaController_;
+    HookController hookController_;
+    DurationController durationController_;
+    FaultController faultController_;
+    RestrictiveFileModule restrictiveFileModule_;
 };
 
-class LocalWebServer : public std::enable_shared_from_this<LocalWebServer>
+class EmbeddedServer : public std::enable_shared_from_this<EmbeddedServer>
 {
 public:
-    LocalWebServer();
-    ~LocalWebServer();
+    EmbeddedServer();
+    ~EmbeddedServer();
 
     void run(unsigned short port);
     Uri address() const;
     void setRootDirectory(const FilePath& rootDirectory);
+    void setInfoFactory(const InfoResponseFactory& factory);
+    void setCriteriaReceived(const CriteriaReceived& callback);
+    void setTriggerReceived(const TriggerReceived& callback);
+    void setDurationReceived(const DurationReceived& callback);
+    void setFaultReceived(const FaultReceived& callback);
 
 private:
     void doAccept();
@@ -75,4 +100,9 @@ private:
     unsigned short port_ = 0;
     tcp::acceptor acceptor_;
     FilePath rootDirectory_;
+    InfoResponseFactory infoFactory_;
+    CriteriaReceived criteriaReceived_;
+    TriggerReceived triggerReceived_;
+    DurationReceived durationReceived_;
+    FaultReceived faultReceived_;
 };

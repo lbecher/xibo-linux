@@ -21,7 +21,7 @@ public:
         using PlayerRuntimeError::PlayerRuntimeError;
     };
 
-    RegionParser(bool globalStatEnabled);
+    RegionParser(bool globalStatEnabled, int layoutId);
 
     std::unique_ptr<Xibo::Region> regionFrom(const XmlNode& node);
     RegionPosition positionFrom(const XmlNode& node);
@@ -33,4 +33,5 @@ private:
 
 private:
     bool globalStatEnabled_;
+    int layoutId_;
 };

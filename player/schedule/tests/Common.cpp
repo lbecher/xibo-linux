@@ -7,12 +7,12 @@ namespace ScheduleTests
 
     ScheduledLayout scheduledLayout(int scheduledId, int id, int priority)
     {
-        return ScheduledLayout{scheduledId, id, priority, {}, {}, {}};
+        return ScheduledLayout{scheduledId, id, priority, {}, {}, {}, {}};
     }
 
     ScheduledLayout scheduledLayout()
     {
-        return ScheduledLayout{DefaultScheduleId, DefaultTestId, DefaultTestPriority, {}, {}, {}};
+        return ScheduledLayout{DefaultScheduleId, DefaultTestId, DefaultTestPriority, {}, {}, {}, {}};
     }
 
     DefaultScheduledLayout defaultLayout()
@@ -38,6 +38,7 @@ namespace ScheduleTests
         layout.endDT = EndDt;
         layout.dependants.emplace_back("local1.txt");
         layout.dependants.emplace_back("local2.txt");
+        layout.criterias.emplace_back(ScheduleCriteria{"audience", "vip", "generic", "eq"});
 
         list.emplace_back(layout);
 
@@ -54,6 +55,7 @@ namespace ScheduleTests
         layout.priority = 0;
         layout.startDT = StartDt;
         layout.endDT = EndDt;
+        layout.criterias.emplace_back(ScheduleCriteria{"temperature", "20", "weather", "gte"});
 
         list.emplace_back(layout);
 

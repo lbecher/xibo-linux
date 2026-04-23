@@ -1,5 +1,7 @@
 #include "PlayableMedia.hpp"
 
+#include "control/cache/UnsafeItemStore.hpp"
+
 PlayableMedia::PlayableMedia(const MediaPlayerOptions& options, std::unique_ptr<Xibo::MediaPlayer>&& player) :
     MediaImpl(options),
     player_(std::move(player))
@@ -30,6 +32,12 @@ void PlayableMedia::onMediaFinished()
 
 void PlayableMedia::onPlaybackFinished(const MediaPlayerOptions& options)
 {
+    if (UnsafeItemStore::instance().isUnsafeMedia(std::to_string(options.id)))
+    {
+        finished()();
+        return;
+    }
+
     if (options.duration == 0)
     {
         finished()();

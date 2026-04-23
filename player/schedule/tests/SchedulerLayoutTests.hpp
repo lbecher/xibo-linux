@@ -26,4 +26,9 @@ protected:
 
         return layout;
     }
+
+    ScheduleCriteria criteria(std::string metric, std::string value, std::string type, std::string condition)
+    {
+        return ScheduleCriteria{std::move(metric), std::move(value), std::move(type), std::move(condition)};
+    }
 };

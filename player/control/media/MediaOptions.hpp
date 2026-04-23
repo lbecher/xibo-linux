@@ -12,6 +12,8 @@ struct MediaOptions
     } type;
 
     int id;
+    int layoutId;
+    int regionId;
     Uri uri;
     int duration;
     bool statEnabled;

@@ -140,3 +140,22 @@ TEST_F(SchedulerLayoutTests, RegularLayoutsDifferentPrioritiesSomeInvalid)
     EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 1);
     EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 1);
 }
+
+TEST_F(SchedulerLayoutTests, RegularLayoutsInactiveCriteriaAreSkipped)
+{
+    auto scheduler = construct();
+    LayoutSchedule schedule{};
+
+    auto gated = validLayout(DefaultTestId + 1, DefaultTestPriority);
+    gated.criterias.push_back(criteria("audience", "vip", "generic", "eq"));
+
+    schedule.defaultLayout = defaultLayout(DefaultTestId);
+    addToQueue(schedule, std::move(gated));
+    scheduler->reloadSchedule(std::move(schedule));
+
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId);
+
+    scheduler->addOrReplaceCriteria("audience", "vip", 300);
+
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 1);
+}

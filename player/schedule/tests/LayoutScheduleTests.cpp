@@ -161,3 +161,22 @@ TEST(ScheduleLayoutEquality, ByDependantsContent)
 
     ASSERT_NE(first, second);
 }
+
+TEST(ScheduleLayoutEquality, ByCriteriaSize)
+{
+    ScheduledLayout first{}, second{};
+
+    first.criterias.push_back({});
+
+    ASSERT_NE(first, second);
+}
+
+TEST(ScheduleLayoutEquality, ByCriteriaContent)
+{
+    ScheduledLayout first{}, second{};
+
+    first.criterias.push_back(ScheduleCriteria{"audience", "vip", "generic", "eq"});
+    second.criterias.push_back(ScheduleCriteria{"audience", "staff", "generic", "eq"});
+
+    ASSERT_NE(first, second);
+}

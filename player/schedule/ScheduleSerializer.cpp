@@ -48,6 +48,16 @@ XmlNode ScheduleSerializer::scheduledLayoutNode(const ScheduledLayout& layout)
     node.put(Resources::Priority, layout.priority);
     node.add_child(Resources::LocalDependants, dependantsNode(layout.dependants));
 
+    for (auto&& criteria : layout.criterias)
+    {
+        XmlNode criteriaNode;
+        criteriaNode.put(Resources::CriteriaMetric, criteria.metric);
+        criteriaNode.put(Resources::CriteriaType, criteria.type);
+        criteriaNode.put(Resources::CriteriaCondition, criteria.condition);
+        criteriaNode.put_value(criteria.value);
+        node.add_child(Resources::Criteria, criteriaNode);
+    }
+
     return node;
 }
 

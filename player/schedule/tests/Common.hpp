@@ -12,9 +12,12 @@ const std::string ScheduleXml = R"(<?xml version="1.0"?>
                                      <file>local1.txt</file>
                                      <file>local2.txt</file>
                                    </dependents>
+                                   <criteria metric="audience" condition="eq" type="generic">vip</criteria>
                                  </layout>
                                  <overlays>
-                                   <overlay file="2" fromdt="1970-01-01 01:00:00" todt="2038-01-19 03:14:07" scheduleid="1" priority="0"/>
+                                   <overlay file="2" fromdt="1970-01-01 01:00:00" todt="2038-01-19 03:14:07" scheduleid="1" priority="0">
+                                     <criteria metric="temperature" condition="gte" type="weather">20</criteria>
+                                   </overlay>
                                  </overlays>
                                  <default file="1">
                                    <dependents>
