@@ -3,7 +3,7 @@
 #include "control/widgets/Image.hpp"
 #include "control/widgets/gtk/WidgetGtk.hpp"
 
-#include <gtkmm/image.h>
+#include <gtkmm/picture.h>
 
 class ImageGtk : public WidgetGtk<Xibo::Image>
 {
@@ -27,7 +27,7 @@ public:
     void fillColor(const Color& color) override;
     void loadFrom(const Uri& uri, PreserveRatio preserveRatio) override;
 
-    Gtk::Image& handler() override;
+    Gtk::Picture& handler() override;
 
 private:
     Glib::RefPtr<const Gdk::Pixbuf> pixbuf() const;
@@ -37,6 +37,6 @@ private:
     void set(const Glib::RefPtr<Gdk::Pixbuf>& pixbuf);
 
 private:
-    Gtk::Image handler_;
+    Gtk::Picture handler_;
     Glib::RefPtr<Gdk::Pixbuf> pixbuf_;
 };

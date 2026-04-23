@@ -29,6 +29,11 @@ private:
         handler_.remove(this->handlerFor(child));
     }
 
+    void moveInHandler(const std::shared_ptr<Xibo::Widget>& child, int left, int top) override
+    {
+        handler_.move(this->handlerFor(child), left, top);
+    }
+
     void reorderInHandler(const std::shared_ptr<Xibo::Widget>& child, int zorder) override
     {
         auto& childHandler = this->handlerFor(child);

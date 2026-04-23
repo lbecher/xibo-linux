@@ -67,16 +67,28 @@ public:
 
     int width() const override
     {
-        int width, _;
-        handler_.get_size_request(width, _);
-        return width;
+        int requestedWidth, _;
+        handler_.get_size_request(requestedWidth, _);
+
+        if (requestedWidth >= 0)
+        {
+            return requestedWidth;
+        }
+
+        return handler_.get_width();
     }
 
     int height() const override
     {
-        int _, height;
-        handler_.get_size_request(_, height);
-        return height;
+        int _, requestedHeight;
+        handler_.get_size_request(_, requestedHeight);
+
+        if (requestedHeight >= 0)
+        {
+            return requestedHeight;
+        }
+
+        return handler_.get_height();
     }
 
     void setOpacity(double value) override

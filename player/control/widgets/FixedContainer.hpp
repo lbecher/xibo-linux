@@ -54,6 +54,7 @@ protected:
     using Container<Base, ChildInfo>::Container;
 
     virtual void addToHandler(const std::shared_ptr<Xibo::Widget>& widget, int left, int top, int zorder) = 0;
+    virtual void moveInHandler(const std::shared_ptr<Xibo::Widget>& widget, int left, int top) = 0;
     virtual void reorderInHandler(const std::shared_ptr<Xibo::Widget>& widget, int zorder) = 0;
 
     void scaleChild(const std::shared_ptr<Xibo::Widget>& widget, ChildInfo& info, double scaleFactor) override
@@ -61,6 +62,7 @@ protected:
         info.left = static_cast<int>(info.left * scaleFactor);
         info.top = static_cast<int>(info.top * scaleFactor);
         widget->scale(scaleFactor, scaleFactor);
+        moveInHandler(widget, info.left, info.top);
     }
 
     void reorderChildren()
