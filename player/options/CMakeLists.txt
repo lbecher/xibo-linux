@@ -17,3 +17,5 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${GTKMM_INCLUDE_DIRS}
 )
+
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

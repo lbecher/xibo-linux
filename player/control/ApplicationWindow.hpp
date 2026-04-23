@@ -10,6 +10,8 @@
 #include "common/types/Uri.hpp"
 #include "config/AppConfig.hpp"
 
+#include <algorithm>
+
 using MainLayoutWidget = std::shared_ptr<Xibo::Widget>;
 using OverlaysWidgets = std::vector<std::shared_ptr<Xibo::Widget>>;
 using StatusScreenShown = boost::signals2::signal<void()>;
@@ -115,8 +117,8 @@ public:
             Window::setSize(adjustedWidth, adjustedHeight);
         }
 
-        statusScreen_->setSize(static_cast<int>(this->width() * StatusScreenScaleX),
-                               static_cast<int>(this->height() * StatusScreenScaleY));
+        statusScreen_->setSize(std::max(MinStatusScreenWidth, static_cast<int>(this->width() * StatusScreenScaleX)),
+                               std::max(MinStatusScreenHeight, static_cast<int>(this->height() * StatusScreenScaleY)));
     }
 
 private:

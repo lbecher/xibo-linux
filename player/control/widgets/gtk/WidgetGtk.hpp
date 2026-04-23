@@ -27,33 +27,29 @@ public:
 
     void show() override
     {
-        if (visible()) return;
-
-        handler_.show();
+        handler_.set_visible(true);
         shown_();
     }
 
     void showAll() override
     {
-        if (visible()) return;
-
-        handler_.show_all();
+        handler_.set_visible(true);
         shown_();
     }
 
     void skipShowAll() override
     {
-        handler_.set_no_show_all();
+        handler_.set_visible(false);
     }
 
     void hide() override
     {
-        handler_.hide();
+        handler_.set_visible(false);
     }
 
     bool visible() const override
     {
-        return handler_.is_visible();
+        return handler_.get_visible();
     }
 
     void scale(double scaleX, double scaleY) override

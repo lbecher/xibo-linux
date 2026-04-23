@@ -71,9 +71,17 @@ void handleRequest(const FilePath& rootDir, http::request<Body, http::basic_fiel
     http::file_body::value_type body;
     body.open(path.c_str(), beast::file_mode::scan, ec);
 
-    if (ec == beast::errc::no_such_file_or_directory) return send(notFound(req.target()));
+    if (ec == beast::errc::no_such_file_or_directory)
+    {
+        Log::error("[WebServer] Not found: {}", path.string());
+        return send(notFound(req.target()));
+    }
 
-    if (ec) return send(serverError(ec.message()));
+    if (ec)
+    {
+        Log::error("[WebServer] File open error for {}: {}", path.string(), ec.message());
+        return send(serverError(ec.message()));
+    }
 
     const auto size = body.size();
 

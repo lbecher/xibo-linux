@@ -157,6 +157,18 @@ void HttpSession::sessionFinished(const boost::system::error_code& ec)
         else
         {
             std::string errorMessage = std::to_string(message.result_int()) + " " + std::string{message.reason()};
+            if (!message.body().empty())
+            {
+                auto body = message.body();
+                constexpr std::size_t MaxBodyExcerpt = 512;
+                if (body.size() > MaxBodyExcerpt)
+                {
+                    body = body.substr(0, MaxBodyExcerpt) + "...";
+                }
+
+                errorMessage += ". Body: " + body;
+            }
+
             PlayerError error{"HTTP", errorMessage};
             setHttpResult(HttpResponseResult{error, {}});
         }

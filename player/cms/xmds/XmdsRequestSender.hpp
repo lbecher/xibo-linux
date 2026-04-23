@@ -24,7 +24,7 @@ class XmdsRequestSender
 public:
     XmdsRequestSender(const std::string& host, const std::string& serverKey, const std::string& hardwareKey);
 
-    FutureResponseResult<RegisterDisplay::Result> registerDisplay(const std::string& clientCode,
+    FutureResponseResult<RegisterDisplay::Result> registerDisplay(int clientCode,
                                                                   const std::string& clientVersion,
                                                                   const std::string& displayName);
     FutureResponseResult<RequiredFiles::Result> requiredFiles();

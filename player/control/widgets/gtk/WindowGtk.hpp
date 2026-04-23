@@ -35,6 +35,7 @@ private:
     void onWindowRealized();
     void resizeWindow(int width, int height);
     Gdk::Rectangle currentMonitorGeometry();
+    void updateCursor();
     void addToHandler(const std::shared_ptr<Xibo::Widget>& child) override;
     void removeFromHandler(const std::shared_ptr<Xibo::Widget>& child) override;
 
@@ -43,4 +44,6 @@ private:
     SignalKeyPressed keyPressed_;
     bool cursorVisible_;
     bool fullscreen_;
+    int x_ = 0;
+    int y_ = 0;
 };

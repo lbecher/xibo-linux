@@ -8,19 +8,14 @@ public:
     static std::string version();
     static std::string releaseVersion();      // TODO: strong type
     static std::string codeVersion();  // TODO: strong type
+    static std::string xmdsVersion();  // TODO: strong type
 
     static FilePath resourceDirectory();
     static void resourceDirectory(const FilePath& directory);
     static FilePath execDirectory();
     static FilePath additionalResourcesDirectory();
     static FilePath configDirectory();
-
-#ifdef SNAP_ENABLED
-    static FilePath oldConfigDirectory()
-    {
-        return FilePath{getenv("SNAP_USER_DATA")};
-    }
-#endif
+    static FilePath oldConfigDirectory();
 
     static FilePath publicKeyPath();
     static FilePath privateKeyPath();

@@ -9,7 +9,6 @@
 
 void setupNewConfigDir()
 {
-#ifdef SNAP_ENABLED
     try
     {
         const std::string CmsSettingsFile = "cmsSettings.xml";
@@ -39,7 +38,6 @@ void setupNewConfigDir()
     {
         std::cout << "Error during setting up new config directory: " << e.what() << std::endl;
     }
-#endif
 }
 int main(int argc, char** argv)
 {
@@ -53,10 +51,6 @@ int main(int argc, char** argv)
 
         boost::program_options::variables_map vm;
         store(parse_command_line(argc, argv, desc), vm);
-
-#if defined(SNAP_ENABLED)
-        std::cout << "Running in SNAP environment" << std::endl;
-#endif
 
         if (FileSystem::exists(AppConfig::cmsSettingsPath()) && vm.count("config-app") == 0)
         {

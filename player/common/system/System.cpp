@@ -6,6 +6,7 @@
 
 #include <limits.h>
 #include <signal.h>
+#include <array>
 
 MacAddress System::macAddress()
 {
@@ -37,7 +38,7 @@ int System::parentProcessId()
 
 Hostname System::hostname()
 {
-    char buffer[HOST_NAME_MAX];
-    gethostname(buffer, sizeof(buffer));
-    return Hostname{buffer};
+    std::array<char, HOST_NAME_MAX + 1> buffer{};
+    gethostname(buffer.data(), HOST_NAME_MAX);
+    return Hostname{buffer.data()};
 }

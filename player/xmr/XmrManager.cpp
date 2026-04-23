@@ -8,11 +8,23 @@
 #include "common/logger/Logging.hpp"
 #include "config/AppConfig.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
+
 const size_t CHANNEL_PART = 0;
 const size_t KEY_PART = 1;
 const size_t MESSAGE_PART = 2;
 
 const char* const HearbeatChannel = "H";
+
+std::string normalizeZmqEndpoint(const std::string& host)
+{
+    if (host.find("://") != std::string::npos)
+    {
+        return host;
+    }
+
+    return "tcp://" + host;
+}
 
 XmrManager::XmrManager(const XmrChannel& mainChannel) : mainChannel_(static_cast<std::string>(mainChannel)) {}
 
@@ -22,9 +34,19 @@ void XmrManager::connect(const std::string& host)
     if (info_.host == host) return;
 
     info_.host = host;
+    if (host.empty() || host == "DISABLED")
+    {
+        subscriber_.stop();
+        Log::info("[XMR] Not configured");
+        return;
+    }
+
+    auto endpoint = normalizeZmqEndpoint(host);
+    Log::info("[XMR] Connecting to {}", endpoint);
+
     subscriber_.messageReceived().connect(
         [this](const Zmq::MultiPartMessage& message) { processMultipartMessage(message); });
-    subscriber_.run(host, Zmq::Channels{mainChannel_, HearbeatChannel});
+    subscriber_.run(endpoint, Zmq::Channels{mainChannel_, HearbeatChannel});
 }
 
 void XmrManager::stop()
@@ -49,8 +71,20 @@ XmrStatus XmrManager::status()
 
 void XmrManager::processMultipartMessage(const Zmq::MultiPartMessage& multipart)
 {
+    if (multipart.empty())
+    {
+        Log::error("[XMR] Received empty message");
+        return;
+    }
+
     if (multipart[CHANNEL_PART] == mainChannel_)
     {
+        if (multipart.size() <= MESSAGE_PART)
+        {
+            Log::error("[XMR] Received invalid message with {} parts", multipart.size());
+            return;
+        }
+
         try
         {
             auto decryptedMessage = decryptMessage(multipart[KEY_PART], multipart[MESSAGE_PART]);
@@ -96,23 +130,68 @@ XmrMessage XmrManager::parseMessage(const std::string& jsonMessage)
 
     XmrMessage message;
     message.action = tree.get<std::string>("action");
-    message.createdDt = DateTime::fromIsoExtendedString(tree.get<std::string>("createdDt"));
+    message.createdDt = parseCreatedDt(tree.get<std::string>("createdDt"));
     message.ttl = tree.get<int>("ttl");
 
     return message;
+}
+
+DateTime XmrManager::parseCreatedDt(const std::string& createdDt)
+{
+    std::string dateTimePart = createdDt;
+    auto offset = DateTime::Seconds{0};
+
+    if (boost::algorithm::ends_with(dateTimePart, "Z"))
+    {
+        dateTimePart.pop_back();
+    }
+    else if (dateTimePart.size() >= 25)
+    {
+        auto offsetStart = dateTimePart.find_last_of("+-");
+        if (offsetStart != std::string::npos && offsetStart > 10)
+        {
+            auto sign = dateTimePart[offsetStart] == '-' ? -1 : 1;
+            auto hours = std::stoi(dateTimePart.substr(offsetStart + 1, 2));
+            auto minutes = std::stoi(dateTimePart.substr(offsetStart + 4, 2));
+
+            offset = DateTime::Seconds{sign * ((hours * 60 + minutes) * 60)};
+            dateTimePart = dateTimePart.substr(0, offsetStart);
+        }
+    }
+
+    auto decimalStart = dateTimePart.find('.');
+    if (decimalStart != std::string::npos)
+    {
+        dateTimePart = dateTimePart.substr(0, decimalStart);
+    }
+
+    auto parsed = DateTime::fromIsoExtendedString(dateTimePart);
+    if (offset.total_seconds() > 0)
+    {
+        return parsed - offset;
+    }
+
+    return parsed + DateTime::Seconds{-offset.total_seconds()};
 }
 
 void XmrManager::processXmrMessage(const XmrMessage& message)
 {
     if (isMessageExpired(message)) return;
 
-    if (message.action == "collectNow")
+    if (message.action == "collectNow" ||
+        message.action == "rekeyAction" ||
+        message.action == "licenceCheck" ||
+        message.action == "clearStatsAndLogs")
     {
         MainLoop::pushToUiThread([this]() { collectionIntervalAction_(); });
     }
     else if (message.action == "screenShot")
     {
         MainLoop::pushToUiThread([this]() { screenshotAction_(); });
+    }
+    else
+    {
+        Log::info("[XMR] Unsupported action: {}", message.action);
     }
 }
 

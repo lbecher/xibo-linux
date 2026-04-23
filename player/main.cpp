@@ -3,6 +3,7 @@
 
 #include <X11/Xlib.h>
 #include <boost/stacktrace.hpp>
+#include <glib.h>
 #include <iostream>
 #include <signal.h>
 
@@ -23,6 +24,7 @@ int main(int /*argc*/, char** /*argv*/)
 {
     std::cout << AppConfig::version() << std::endl;
 
+    g_setenv("GDK_BACKEND", "wayland,x11", false);
     XInitThreads();
     signal(SIGSEGV, &signalStacktraceHandler);
     signal(SIGABRT, &signalStacktraceHandler);

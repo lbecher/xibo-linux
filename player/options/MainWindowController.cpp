@@ -23,21 +23,21 @@ MainWindowController::MainWindowController(Gtk::Window* window, const Glib::RefP
 
 void MainWindowController::initUi()
 {
-    ui_->get_widget(Resources::Ui::CmsAddressEntry, cmsAddressField_);
-    ui_->get_widget(Resources::Ui::KeyEntry, keyField_);
-    ui_->get_widget(Resources::Ui::ResourcesPathEntry, resourcesPathField_);
-    ui_->get_widget(Resources::Ui::BrowseResourcesButton, browseResourcesPath_);
+    cmsAddressField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::CmsAddressEntry);
+    keyField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::KeyEntry);
+    resourcesPathField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::ResourcesPathEntry);
+    browseResourcesPath_ = ui_->get_widget<Gtk::Button>(Resources::Ui::BrowseResourcesButton);
 
-    ui_->get_widget(Resources::Ui::UsernameEntry, usernameField_);
-    ui_->get_widget(Resources::Ui::PasswordEntry, passwordField_);
-    ui_->get_widget(Resources::Ui::SplashScreenPathEntry, splashScreenPath_);
-    ui_->get_widget(Resources::Ui::BrowseSplashScreenButton, browseSplashScreenPath_);
-    ui_->get_widget(Resources::Ui::DomainEntry, domainField_);
-    ui_->get_widget(Resources::Ui::DisplayIdEntry, displayIdField_);
+    usernameField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::UsernameEntry);
+    passwordField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::PasswordEntry);
+    splashScreenPath_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::SplashScreenPathEntry);
+    browseSplashScreenPath_ = ui_->get_widget<Gtk::Button>(Resources::Ui::BrowseSplashScreenButton);
+    domainField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::DomainEntry);
+    displayIdField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::DisplayIdEntry);
 
-    ui_->get_widget(Resources::Ui::ConnectionStatusLabel, connectionStatus_);
-    ui_->get_widget(Resources::Ui::SaveButton, saveSettings_);
-    ui_->get_widget(Resources::Ui::ExitButton, exit_);
+    connectionStatus_ = ui_->get_widget<Gtk::Label>(Resources::Ui::ConnectionStatusLabel);
+    saveSettings_ = ui_->get_widget<Gtk::Button>(Resources::Ui::SaveButton);
+    exit_ = ui_->get_widget<Gtk::Button>(Resources::Ui::ExitButton);
 }
 
 void MainWindowController::updateControls(const CmsSettings& settings)
@@ -89,7 +89,8 @@ std::string MainWindowController::connectToCms(const std::string& cmsAddress,
 
                 
         auto connectionResult =
-            xmdsRequester.registerDisplay(AppConfig::codeVersion(), AppConfig::releaseVersion(), playerSettings_.displayName())
+            xmdsRequester
+                .registerDisplay(std::stoi(AppConfig::codeVersion()), AppConfig::releaseVersion(), playerSettings_.displayName())
                 .then([](auto future) {
                     auto [error, result] = future.get();
 
@@ -136,17 +137,23 @@ std::string MainWindowController::createDefaultResourceDir()
 
 void MainWindowController::onBrowseResourcesPathClicked()
 {
-    Gtk::FileChooserDialog dialog{Resources::ChooseResourcesFolder, Gtk::FILE_CHOOSER_ACTION_SELECT_FOLDER};
+    auto* dialog =
+        new Gtk::FileChooserDialog{*mainWindow_, Resources::ChooseResourcesFolder, Gtk::FileChooser::Action::SELECT_FOLDER};
 
-    dialog.set_transient_for(*mainWindow_);
-    dialog.add_button("Cancel", Gtk::RESPONSE_CANCEL);
-    dialog.add_button("Select", Gtk::RESPONSE_OK);
+    dialog->add_button("Cancel", static_cast<int>(Gtk::ResponseType::CANCEL));
+    dialog->add_button("Select", static_cast<int>(Gtk::ResponseType::OK));
 
-    int result = dialog.run();
+    dialog->signal_response().connect([this, dialog](int response) {
+        if (response == static_cast<int>(Gtk::ResponseType::OK))
+        {
+            if (auto file = dialog->get_file())
+            {
+                resourcesPathField_->set_text(file->get_path());
+            }
+        }
 
-    switch (result)
-    {
-        case (Gtk::RESPONSE_OK): resourcesPathField_->set_text(dialog.get_filename()); break;
-        default: break;
-    }
+        dialog->hide();
+        delete dialog;
+    });
+    dialog->present();
 }

@@ -28,15 +28,17 @@ Soap::RequestSerializer<RegisterDisplay::Request>::RequestSerializer(const Regis
 std::string Soap::RequestSerializer<RegisterDisplay::Request>::string()
 {
     return createRequest(Resources::Name,
-                         request().clientCode,
+                         request().serverKey,
+                         request().hardwareKey,
+                         request().displayName,
                          request().clientType,
                          request().clientVersion,
-                         request().displayName,
+                         request().clientCode,
+                         request().operatingSystem,
                          request().macAddress,
                          request().xmrChannel,
                          request().xmrPubKey,
-                         request().serverKey,
-                         request().hardwareKey);
+                         request().licenceResult);
 }
 
 Soap::ResponseParser<RegisterDisplay::Result>::ResponseParser(const std::string& soapResponse) :

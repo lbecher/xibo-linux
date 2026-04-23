@@ -33,6 +33,7 @@ private:
     void processMultipartMessage(const Zmq::MultiPartMessage& message);
     std::string decryptMessage(const std::string& key, const std::string& message);
     XmrMessage parseMessage(const std::string& jsonMessage);
+    DateTime parseCreatedDt(const std::string& createdDt);
     void processXmrMessage(const XmrMessage& message);
     bool isMessageExpired(const XmrMessage& message);
 

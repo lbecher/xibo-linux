@@ -73,7 +73,8 @@ void CollectionInterval::collectNow()
             Log::debug("[CollectionInterval] Started");
 
             auto registerDisplayResult =
-                xmdsSender_.registerDisplay(AppConfig::codeVersion(), AppConfig::releaseVersion(), displayName_).get();
+                xmdsSender_.registerDisplay(std::stoi(AppConfig::codeVersion()), AppConfig::releaseVersion(), displayName_)
+                    .get();
             onDisplayRegistered(registerDisplayResult);
         });
     }
@@ -275,13 +276,37 @@ void CollectionInterval::submitStats()
 void CollectionInterval::notifyStatus()
 {
     NotifyStatusInfo notifyInfo;
-    // FIXME: store it in collection interval until XMDS refactoring
-    notifyInfo.currentLayoutId = currentLayoutId_;
     notifyInfo.deviceName = System::hostname();
-    notifyInfo.spaceUsageInfo = FileSystem::storageUsageFor(resourceDirectory_);
-    notifyInfo.timezone = DateTime::currentTimezone();
 
-    auto notifyStatusResult = xmdsSender_.notifyStatus(notifyInfo.string()).get();
+    try
+    {
+        notifyInfo.spaceUsageInfo = FileSystem::storageUsageFor(resourceDirectory_);
+        notifyInfo.hasSpaceUsageInfo = true;
+    }
+    catch (const std::exception& e)
+    {
+        Log::debug("[XMDS::NotifyStatus] Unable to get storage usage: {}", e.what());
+    }
+
+    try
+    {
+        notifyInfo.timezone = DateTime::currentTimezone();
+    }
+    catch (const std::exception& e)
+    {
+        Log::debug("[XMDS::NotifyStatus] Unable to get timezone: {}", e.what());
+    }
+
+    auto status = notifyInfo.string();
+    Log::debug("[XMDS::NotifyStatus] Payload: {}", status);
+
+    auto notifyStatusResult = xmdsSender_.notifyStatus(status).get();
+    auto [error, result] = notifyStatusResult;
+    if (error)
+    {
+        Log::error("[XMDS::NotifyStatus] Payload failed: {}", status);
+    }
+
     onSubmitted("NotifyStatus", notifyStatusResult);
 }
 
@@ -302,6 +327,7 @@ void CollectionInterval::onSubmitted(std::string_view requestName, const Respons
     }
     else
     {
+        Log::error("[XMDS::{}] Submit failed: {}", requestName, error);
         sessionFinished(error);
     }
 }

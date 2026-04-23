@@ -5,10 +5,50 @@
 
 #include "common/crypto/RsaManager.hpp"
 #include "common/system/System.hpp"
+#include "config/AppConfig.hpp"
 #include "xmr/XmrChannel.hpp"
 
+#include <sys/utsname.h>
+
+namespace
+{
+std::string jsonEscape(const std::string& value)
+{
+    std::string escaped;
+    escaped.reserve(value.size());
+
+    for (char ch : value)
+    {
+        switch (ch)
+        {
+            case '"': escaped += "\\\""; break;
+            case '\\': escaped += "\\\\"; break;
+            case '\b': escaped += "\\b"; break;
+            case '\f': escaped += "\\f"; break;
+            case '\n': escaped += "\\n"; break;
+            case '\r': escaped += "\\r"; break;
+            case '\t': escaped += "\\t"; break;
+            default: escaped += ch; break;
+        }
+    }
+
+    return escaped;
+}
+
+std::string operatingSystemJson()
+{
+    utsname info{};
+    if (uname(&info) != 0)
+    {
+        return R"({"version":"Linux"})";
+    }
+
+    return std::string{R"({"version":")"} + jsonEscape(std::string{info.sysname} + " " + info.release) + R"("})";
+}
+}
+
 const std::string DefaultClientType = "linux";
-const std::string XmdsTarget = "/xmds.php?v=5";
+const std::string XmdsTarget = "/xmds.php?v=" + AppConfig::xmdsVersion();
 
 XmdsRequestSender::XmdsRequestSender(const std::string& host,
                                      const std::string& serverKey,
@@ -20,7 +60,7 @@ XmdsRequestSender::XmdsRequestSender(const std::string& host,
 {
 }
 
-FutureResponseResult<RegisterDisplay::Result> XmdsRequestSender::registerDisplay(const std::string& clientCode,
+FutureResponseResult<RegisterDisplay::Result> XmdsRequestSender::registerDisplay(int clientCode,
                                                                                  const std::string& clientVersion,
                                                                                  const std::string& displayName)
 {
@@ -31,9 +71,11 @@ FutureResponseResult<RegisterDisplay::Result> XmdsRequestSender::registerDisplay
     request.clientCode = clientCode;
     request.clientVersion = clientVersion;
     request.macAddress = static_cast<std::string>(System::macAddress());
+    request.operatingSystem = operatingSystemJson();
     request.xmrChannel = static_cast<std::string>(XmrChannel::fromCmsSettings(host_, serverKey_, hardwareKey_));
     request.xmrPubKey = CryptoUtils::keyToString(RsaManager::instance().publicKey());
     request.displayName = displayName;
+    request.licenceResult = "";
 
     return SoapRequestHelper::sendRequest<RegisterDisplay::Result>(uri_, request);
 }

@@ -1,19 +1,80 @@
 #include "AppConfig.hpp"
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <cstring>
 
 #include "common/PlayerRuntimeError.hpp"
 #include "common/fs/FileSystem.hpp"
 #include "common/logger/Logging.hpp"
-
-#if !defined(SNAP_ENABLED)
 #include "GitHash.hpp"
-#endif
 
+#include <cassert>
+#include <cstdlib>
 #include <filesystem>
 #include <linux/limits.h>
 #include <unistd.h>
+#include <vector>
+
+namespace
+{
+FilePath ensureDirectoryExists(const FilePath& path)
+{
+    if (!FileSystem::exists(path))
+    {
+        if (!std::filesystem::create_directories(path.string()))
+        {
+            throw PlayerRuntimeError{"AppConfig", fmt::format("Unable to create directory {}", path)};
+        }
+    }
+
+    return path;
+}
+
+FilePath userConfigDirectory()
+{
+    if (const char* xdgConfigHome = std::getenv("XDG_CONFIG_HOME"); xdgConfigHome && *xdgConfigHome)
+    {
+        return FilePath{xdgConfigHome} / "xibo-player";
+    }
+
+    if (const char* home = std::getenv("HOME"); home && *home)
+    {
+        return FilePath{home} / ".config" / "xibo-player";
+    }
+
+    throw PlayerRuntimeError{"AppConfig", "HOME or XDG_CONFIG_HOME is not set"};
+}
+
+bool hasUiFile(const FilePath& directory)
+{
+    return FileSystem::exists(directory / "ui.glade");
+}
+
+FilePath resolveResourcesDirectory(const FilePath& binaryDir)
+{
+    std::vector<FilePath> candidates;
+
+    const char* resourcePath = std::getenv("XIBO_RESOURCE_PATH");
+    if (resourcePath && std::strlen(resourcePath) > 0)
+    {
+        candidates.emplace_back(resourcePath);
+    }
+
+    candidates.push_back(binaryDir);
+    candidates.push_back(binaryDir / ".." / ".." / "player" / "resources");
+    candidates.push_back(binaryDir / ".." / "share" / "xibo-player");
+    candidates.push_back(binaryDir / ".." / ".." / "share" / "xibo-player");
+
+    for (const auto& candidate : candidates)
+    {
+        if (hasUiFile(candidate))
+        {
+            return candidate;
+        }
+    }
+
+    return binaryDir;
+}
+} // namespace
 
 FilePath AppConfig::resourceDirectory_;
 
@@ -24,25 +85,20 @@ std::string AppConfig::version()
 
 std::string AppConfig::releaseVersion()
 {
-#if defined(SNAP_ENABLED)
-    return getenv("SNAP_VERSION");
-#else
     // Update this with each release.
-    return std::string{"1.8 R"} + codeVersion() + GIT_HASH;
-#endif
+    return "4 R406.3";
 }
 
 std::string AppConfig::codeVersion()
 {
-#if defined(SNAP_ENABLED)
-    if (boost::starts_with(getenv("SNAP_REVISION"), "x")) {
-        return "7";
-    }
-    return getenv("SNAP_REVISION");
-#else
     // Update this with each release
+    return "406";
+}
+
+std::string AppConfig::xmdsVersion()
+{
+    // XMDS protocol version supported by this player.
     return "7";
-#endif
 }
 
 FilePath AppConfig::resourceDirectory()
@@ -61,11 +117,12 @@ void AppConfig::resourceDirectory(const FilePath& directory)
 
 FilePath AppConfig::configDirectory()
 {
-#if defined(SNAP_ENABLED)
-    return FilePath{getenv("SNAP_USER_COMMON")};
-#else
+    return ensureDirectoryExists(userConfigDirectory());
+}
+
+FilePath AppConfig::oldConfigDirectory()
+{
     return execDirectory();
-#endif
 }
 
 FilePath AppConfig::publicKeyPath()
@@ -105,16 +162,7 @@ FilePath AppConfig::statsCache()
 
 FilePath AppConfig::additionalResourcesDirectory()
 {
-#if defined(SNAP_ENABLED)
-    return FilePath{getenv("SNAP")} / "usr" / "share" / "xibo-player";
-#else
-    // Check for portable mode environment variable first
-    const char* resourcePath = getenv("XIBO_RESOURCE_PATH");
-    if (resourcePath && strlen(resourcePath) > 0) {
-        return FilePath{resourcePath};
-    }
-    return execDirectory();
-#endif
+    return resolveResourcesDirectory(execDirectory());
 }
 
 FilePath AppConfig::splashScreenPath()
@@ -129,15 +177,11 @@ FilePath AppConfig::uiFile()
 
 FilePath AppConfig::execDirectory()
 {
-#if defined(SNAP_ENABLED)
-    return FilePath{getenv("SNAP")} / "usr" / "bin";
-#else
-    // workaround for those who starts the player out of snap
+    // Resolve the directory that contains the running executable.
     char result[PATH_MAX];
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     assert(count != -1);
     return FilePath{std::filesystem::path(std::string(result, static_cast<size_t>(count))).parent_path()};
-#endif
 }
 
 std::string AppConfig::playerBinary()
