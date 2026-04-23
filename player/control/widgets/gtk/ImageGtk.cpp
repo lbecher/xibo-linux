@@ -6,7 +6,7 @@
 
 ImageGtk::ImageGtk() : WidgetGtk(handler_)
 {
-    set(Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, DefaultUseAlpha, BitsPerSample, DefaultWidth, DefaultHegiht));
+    set(Gdk::Pixbuf::create(Gdk::Colorspace::RGB, DefaultUseAlpha, BitsPerSample, DefaultWidth, DefaultHegiht));
 }
 
 int ImageGtk::width() const
@@ -24,7 +24,7 @@ int ImageGtk::height() const
 void ImageGtk::setSize(int width, int height)
 {
     check(width, height);
-    set(pixbuf()->scale_simple(width, height, Gdk::InterpType::INTERP_BILINEAR));
+    set(pixbuf()->scale_simple(width, height, Gdk::InterpType::BILINEAR));
 }
 
 void ImageGtk::fillColor(const Color& color)
@@ -52,12 +52,12 @@ Gtk::Image& ImageGtk::handler()
 
 Glib::RefPtr<const Gdk::Pixbuf> ImageGtk::pixbuf() const
 {
-    return handler_.get_pixbuf();
+    return pixbuf_;
 }
 
 Glib::RefPtr<Gdk::Pixbuf> ImageGtk::pixbuf()
 {
-    return handler_.get_pixbuf();
+    return pixbuf_;
 }
 
 void ImageGtk::check(int width, int height)
@@ -68,5 +68,6 @@ void ImageGtk::check(int width, int height)
 void ImageGtk::set(const Glib::RefPtr<Gdk::Pixbuf>& pixbuf)
 {
     if (!pixbuf) throw Error{"ImageGtk", "Not enough memory to allocate image"};
+    pixbuf_ = pixbuf;
     handler_.set(pixbuf);
 }

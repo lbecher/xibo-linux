@@ -8,6 +8,7 @@ public:
     static std::string version();
     static std::string releaseVersion();      // TODO: strong type
     static std::string codeVersion();  // TODO: strong type
+    static std::string xmdsVersion();  // TODO: strong type
 
     static FilePath resourceDirectory();
     static void resourceDirectory(const FilePath& directory);

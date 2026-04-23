@@ -3,41 +3,41 @@
 #include "common/logger/Logging.hpp"
 
 #include <boost/format.hpp>
-#include <gdk/gdkx.h>
+#include <gdk/gdk.h>
+#include <gdk/x11/gdkx.h>
+#include <gdkmm/monitor.h>
 #include <gtkmm/cssprovider.h>
+#include <gtkmm/eventcontrollerkey.h>
+#include <gtkmm/styleprovider.h>
 
 WindowGtk::WindowGtk() : SingleContainerGtk{handler_}, cursorVisible_(true), fullscreen_(false)
 {
     handler_.signal_realize().connect(std::bind(&WindowGtk::onWindowRealized, this));
-    handler_.add_events(Gdk::KEY_PRESS_MASK);
-    handler_.signal_key_press_event().connect([this](GdkEventKey* event) {
-        keyPressed_(KeyboardKey{event->string, event->keyval});
-        return false;
-    });
-    handler_.signal_window_state_event().connect([this](GdkEventWindowState* event) {
-        if (event->changed_mask & GDK_WINDOW_STATE_FULLSCREEN)
-        {
-            bool fullscreen = event->new_window_state & GDK_WINDOW_STATE_FULLSCREEN;
-            if (!fullscreen)
-            {
-                // setSize right after unfullscreen() only change virtual size of the window but not
-                // physical because unfullscreen() is async operation and only after this execution we can restore
-                // previous physical window dimensions.
-                handler_.resize(this->width(), this->height());
-            }
-        }
-        return false;
-    });
+
+    auto keyController = Gtk::EventControllerKey::create();
+    keyController->signal_key_pressed().connect(
+        [this](guint keyval, guint /*keycode*/, Gdk::ModifierType /*state*/) {
+            const char* keyName = gdk_keyval_name(keyval);
+            keyPressed_(KeyboardKey{keyName ? keyName : "", keyval});
+            return false;
+        },
+        false);
+    handler_.add_controller(keyController);
+
+    handler_.property_fullscreened().signal_changed().connect([this]() { fullscreen_ = handler_.is_fullscreen(); });
 }
 
 void WindowGtk::addToHandler(const std::shared_ptr<Xibo::Widget>& child)
 {
-    handler_.add(handlerFor(child));
+    handler_.set_child(handlerFor(child));
 }
 
-void WindowGtk::removeFromHandler(const std::shared_ptr<Xibo::Widget>& /*child*/)
+void WindowGtk::removeFromHandler(const std::shared_ptr<Xibo::Widget>& child)
 {
-    handler_.remove();
+    if (handler_.get_child() == &handlerFor(child))
+    {
+        handler_.unset_child();
+    }
 }
 
 void WindowGtk::setSize(int width, int height)
@@ -48,26 +48,23 @@ void WindowGtk::setSize(int width, int height)
 void WindowGtk::resizeWindow(int width, int height)
 {
     SingleContainerGtk::setSize(width, height);
-    handler_.resize(width, height);
+    handler_.set_default_size(width, height);
 }
 
 int WindowGtk::x() const
 {
-    int x, _;
-    handler_.get_position(x, _);
-    return x;
+    return x_;
 }
 
 int WindowGtk::y() const
 {
-    int _, y;
-    handler_.get_position(_, y);
-    return y;
+    return y_;
 }
 
 void WindowGtk::move(int x, int y)
 {
-    handler_.move(x, y);
+    x_ = x;
+    y_ = y;
 }
 
 void WindowGtk::disableWindowResize()
@@ -121,34 +118,50 @@ bool WindowGtk::isFullscreen() const
 void WindowGtk::setCursorVisible(bool cursorVisible)
 {
     cursorVisible_ = cursorVisible;
+    updateCursor();
 }
 
 void WindowGtk::onWindowRealized()
 {
-    if (!cursorVisible_)
-    {
-        auto window = handler_.get_window();
-        if (window)
-        {
-            window->set_cursor(Gdk::Cursor::create(Gdk::BLANK_CURSOR));
-        }
-        else
-        {
-            Log::error("[WindowGtk] Failed to set blank cursor");
-        }
-    }
+    updateCursor();
 }
 
 Gdk::Rectangle WindowGtk::currentMonitorGeometry()
 {
     Gdk::Rectangle geometry;
-    auto screen = Glib::RefPtr<Gdk::Screen>::cast_const(handler_.get_screen());
-    if (screen)
+    auto surface = handler_.get_surface();
+    auto display = handler_.get_display();
+
+    if (surface && display)
     {
-        int monitor = screen->get_monitor_at_point(x(), y());
-        screen->get_monitor_geometry(monitor, geometry);
+        if (auto monitor = display->get_monitor_at_surface(surface))
+        {
+            monitor->get_geometry(geometry);
+        }
     }
+
+    if (geometry.has_zero_area() && display)
+    {
+        auto* monitors = gdk_display_get_monitors(display->gobj());
+        if (monitors && g_list_model_get_n_items(monitors) > 0)
+        {
+            auto* monitor = GDK_MONITOR(g_list_model_get_item(monitors, 0));
+            GdkRectangle monitorGeometry;
+            gdk_monitor_get_geometry(monitor, &monitorGeometry);
+            geometry.set_x(monitorGeometry.x);
+            geometry.set_y(monitorGeometry.y);
+            geometry.set_width(monitorGeometry.width);
+            geometry.set_height(monitorGeometry.height);
+            g_object_unref(monitor);
+        }
+    }
+
     return geometry;
+}
+
+void WindowGtk::updateCursor()
+{
+    handler_.set_cursor(cursorVisible_ ? "" : "none");
 }
 
 void WindowGtk::setBackgroundColor(const Color& color)
@@ -156,13 +169,13 @@ void WindowGtk::setBackgroundColor(const Color& color)
     boost::format windowStyleFmt{"window { background-color: %1%; }"};
 
     auto cssProvider = Gtk::CssProvider::create();
-    auto styleContext = Gtk::StyleContext::create();
-    auto screen = handler_.get_screen();
+    auto display = handler_.get_display();
     auto windowStyle = (windowStyleFmt % color.string()).str();
 
-    if (cssProvider && styleContext && screen && cssProvider->load_from_data(windowStyle))
+    if (cssProvider && display)
     {
-        styleContext->add_provider_for_screen(screen, cssProvider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+        cssProvider->load_from_data(windowStyle);
+        Gtk::StyleProvider::add_provider_for_display(display, cssProvider, GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     }
     else
     {
@@ -172,17 +185,18 @@ void WindowGtk::setBackgroundColor(const Color& color)
 
 NativeWindow WindowGtk::nativeWindow()
 {
-    auto window = handler_.get_window();
-    if (window)
+    auto surface = handler_.get_surface();
+    if (surface && GDK_IS_X11_SURFACE(surface->gobj()))
     {
-        return gdk_x11_window_get_xid(window->gobj());
+        return gdk_x11_surface_get_xid(surface->gobj());
     }
     return DefaultNativeWindow;
 }
 
 void WindowGtk::setKeepAbove(bool keep_above)
 {
-    handler_.set_keep_above(keep_above);
+    (void)keep_above;
+    Log::debug("[WindowGtk] setKeepAbove is not supported by GTK4");
 }
 
 Gtk::Window& WindowGtk::handler()

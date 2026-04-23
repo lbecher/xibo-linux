@@ -1,5 +1,6 @@
 xibo-player (1.8.0-1) unstable; urgency=medium
 
   * Migrate packaging to Debian native debhelper flow.
+  * Migrate GTK3 to GTK4.
 
  -- Luiz Fernando Becher de Araujo <luiz.becher.araujo@gmail.com>  Tue, 22 Apr 2026 00:00:00 +0000

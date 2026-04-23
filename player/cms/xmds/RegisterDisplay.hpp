@@ -36,10 +36,12 @@ namespace RegisterDisplay
         SoapField<std::string> displayName{"displayName"};
         SoapField<std::string> clientType{"clientType"};
         SoapField<std::string> clientVersion{"clientVersion"};
-        SoapField<std::string> clientCode{"clientCode"};
+        SoapField<int> clientCode{"clientCode"};
+        SoapField<std::string> operatingSystem{"operatingSystem"};
         SoapField<std::string> macAddress{"macAddress"};
         SoapField<std::string> xmrChannel{"xmrChannel"};
         SoapField<std::string> xmrPubKey{"xmrPubKey"};
+        SoapField<std::string> licenceResult{"licenceResult"};
     };
 }
 

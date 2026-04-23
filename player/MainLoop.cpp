@@ -29,6 +29,7 @@ int MainLoop::run(WindowGtk& adaptor)
 
     parentApp_->signal_startup().connect([this, &windowHandler]() {
         parentApp_->add_window(windowHandler);
+        windowHandler.present();
         started_();
     });
 

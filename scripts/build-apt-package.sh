@@ -191,7 +191,7 @@ Section: video
 Priority: optional
 Architecture: ${target_arch}
 Maintainer: Xibo Linux Maintainers <support@xibo.org.uk>
-Depends: libc6, libstdc++6, libgtkmm-3.0-1t64, libglibmm-2.4-1t64, libwebkit2gtk-4.1-0, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libsqlite3-0, libssl3t64, libzmq5, libcrypto++8t64, libdate-tz3, libboost-system1.83.0, libboost-thread1.83.0, libboost-filesystem1.83.0, libboost-date-time1.83.0, libboost-program-options1.83.0
+Depends: libc6, libstdc++6, libgtkmm-4.0-0, libglibmm-2.68-1t64, libwebkitgtk-6.0-4, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libsqlite3-0, libssl3t64, libzmq5, libcrypto++8t64, libdbus-1-3, libdate-tz3, libboost-system1.83.0, libboost-thread1.83.0, libboost-filesystem1.83.0, libboost-date-time1.83.0, libboost-program-options1.83.0
 Installed-Size: ${installed_size}
 Description: Xibo Linux Player
  Digital signage player for Xibo CMS.

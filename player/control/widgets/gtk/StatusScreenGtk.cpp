@@ -2,20 +2,23 @@
 
 #include "common/logger/Logging.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/string/join.hpp>
 
 StatusScreenGtk::StatusScreenGtk(WindowGtk& parentWindow, int width, int height) :
     WidgetGtk(dialog_),
     dialog_{"", parentWindow.handler()}
 {
-    WidgetGtk::setSize(width, height);
+    setSize(width, height);
 
-    firstPage_.add(mainInfoLabel_);
-    secondPage_.add(invalidFilesLabel_);
+    firstPage_.set_child(mainInfoLabel_);
+    secondPage_.set_child(invalidFilesLabel_);
     notebook_.append_page(firstPage_, "Main Info");
     notebook_.append_page(secondPage_, "Invalid Files");
 
-    dialog_.get_content_area()->pack_start(notebook_, Gtk::PACK_EXPAND_WIDGET);
+    notebook_.set_hexpand(true);
+    notebook_.set_vexpand(true);
+    dialog_.get_content_area()->append(notebook_);
     dialog_.set_title("Status Screen");
     dialog_.add_button("Ok", OkResponseId);
     dialog_.add_button("Exit and don't restart", ExitWithoutRestartResponseId);
@@ -30,7 +33,7 @@ StatusScreenGtk::StatusScreenGtk(WindowGtk& parentWindow, int width, int height)
 
 void StatusScreenGtk::setSize(int width, int height)
 {
-    fontSize_ = static_cast<size_t>(height) * FontScaleFactor;
+    fontSize_ = static_cast<size_t>(std::max(1, height)) * FontScaleFactor;
     updateTextSize();
     WidgetGtk::setSize(width, height);
 }
@@ -57,7 +60,7 @@ Gtk::Widget& StatusScreenGtk::handler()
 
 std::string StatusScreenGtk::pangoFormat(const std::string& text)
 {
-    return "<span size=\"" + std::to_string(fontSize_) + "\">" + text + "</span>";
+    return "<span size=\"" + std::to_string(std::max<size_t>(1, fontSize_)) + "\">" + text + "</span>";
 }
 
 void StatusScreenGtk::updateTextSize()

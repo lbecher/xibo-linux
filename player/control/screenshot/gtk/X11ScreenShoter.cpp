@@ -12,7 +12,21 @@ void X11ScreenShoter::takeScreenshotNative(NativeWindow window, const ImageBuffe
     MainLoop::pushToUiThread([=]() {
         try
         {
+            if (window == DefaultNativeWindow)
+            {
+                Log::error("[X11ScreenShoter] Native X11 window is not available");
+                callback({});
+                return;
+            }
+
             Display* display = XOpenDisplay(nullptr);
+            if (!display)
+            {
+                Log::error("[X11ScreenShoter] X11 display is not available");
+                callback({});
+                return;
+            }
+
             XWindowAttributes gwa;
             XGetWindowAttributes(display, window, &gwa);
 
@@ -26,6 +40,7 @@ void X11ScreenShoter::takeScreenshotNative(NativeWindow window, const ImageBuffe
         catch (std::exception& e)
         {
             Log::error("[X11ScreenShoter] {}", e.what());
+            callback({});
         }
     });
 }

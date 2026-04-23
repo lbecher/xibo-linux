@@ -86,12 +86,18 @@ std::string AppConfig::version()
 std::string AppConfig::releaseVersion()
 {
     // Update this with each release.
-    return std::string{"1.8 R"} + codeVersion() + GIT_HASH;
+    return "4 R406.3";
 }
 
 std::string AppConfig::codeVersion()
 {
     // Update this with each release
+    return "406";
+}
+
+std::string AppConfig::xmdsVersion()
+{
+    // XMDS protocol version supported by this player.
     return "7";
 }
 

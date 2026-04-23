@@ -7,9 +7,13 @@ pkg_check_modules(GSTREAMER REQUIRED
     gstreamer-video-1.0>=1.16.2
     gstreamer-gl-1.0>=1.16.2
     gstreamer-app-1.0>=1.16.2)
-pkg_check_modules(WEBKITGTK webkit2gtk-4.1>=2.28.1)
-if(NOT WEBKITGTK_FOUND)
-    pkg_check_modules(WEBKITGTK REQUIRED webkit2gtk-4.0>=2.28.1)
+pkg_check_modules(WEBKITGTK webkitgtk-6.0>=2.40.0)
+if(WEBKITGTK_FOUND)
+    add_compile_definitions(USE_WEBKITGTK)
+else()
+    message(WARNING "webkitgtk-6.0 was not found; WebViewGtk will build without WebKit support")
+    set(WEBKITGTK_LINK_LIBRARIES "")
+    set(WEBKITGTK_INCLUDE_DIRS "")
 endif()
 pkg_check_modules(SQLITE3 REQUIRED sqlite3)
 

@@ -3,7 +3,7 @@
 #include "control/widgets/FixedContainer.hpp"
 #include "control/widgets/gtk/WidgetGtk.hpp"
 
-#include <gtkmm/overlay.h>
+#include <gtkmm/fixed.h>
 
 template <typename Interface>
 class BaseFixedContainerGtk : public FixedContainer<WidgetGtk<Interface>>
@@ -11,50 +11,42 @@ class BaseFixedContainerGtk : public FixedContainer<WidgetGtk<Interface>>
 public:
     BaseFixedContainerGtk() : FixedContainer<WidgetGtk<Interface>>{handler_}
     {
-        handler_.signal_get_child_position().connect(sigc::mem_fun(this, &BaseFixedContainerGtk::onGetChildPosition),
-                                                     false);
     }
 
-    Gtk::Overlay& handler() override
+    Gtk::Fixed& handler() override
     {
         return handler_;
     }
 
 private:
-    void addToHandler(const std::shared_ptr<Xibo::Widget>& child, int /*left*/, int /*top*/, int /*zorder*/) override
+    void addToHandler(const std::shared_ptr<Xibo::Widget>& child, int left, int top, int /*zorder*/) override
     {
-        handler_.add_overlay(this->handlerFor(child));
+        handler_.put(this->handlerFor(child), left, top);
     }
 
     void removeFromHandler(const std::shared_ptr<Xibo::Widget>& child) override
     {
-        handler_.Gtk::Container::remove(this->handlerFor(child));
+        handler_.remove(this->handlerFor(child));
     }
 
     void reorderInHandler(const std::shared_ptr<Xibo::Widget>& child, int zorder) override
     {
-        handler_.reorder_overlay(this->handlerFor(child), zorder);
-    }
+        auto& childHandler = this->handlerFor(child);
 
-    bool onGetChildPosition(Gtk::Widget* widget, Gdk::Rectangle& alloc)
-    {
-        auto it =
-            this->findChild([this, widget](const auto& child) { return &this->handlerFor(child.widget) == widget; });
-        if (it != this->children().end())
+        if (zorder == 0)
         {
-            auto&& [widget, info] = *it;
-
-            alloc.set_x(info.left);
-            alloc.set_y(info.top);
-            alloc.set_width(widget->width());
-            alloc.set_height(widget->height());
-            return true;
+            if (this->children().size() > 1)
+            {
+                childHandler.insert_before(handler_, this->handlerFor(this->children()[1].widget));
+            }
+            return;
         }
-        return false;
+
+        childHandler.insert_after(handler_, this->handlerFor(this->children()[zorder - 1].widget));
     }
 
 private:
-    Gtk::Overlay handler_;
+    Gtk::Fixed handler_;
 };
 
 using FixedContainerGtk = BaseFixedContainerGtk<Xibo::FixedContainer>;

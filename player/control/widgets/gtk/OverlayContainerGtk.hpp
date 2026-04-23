@@ -7,13 +7,13 @@ protected:
     void setMainChildImpl(const std::shared_ptr<Xibo::Widget>& mainChild) override
     {
         auto& childHandler = handlerFor(mainChild);
-        handler().add(childHandler);
-        childHandler.set_valign(Gtk::ALIGN_CENTER);
-        childHandler.set_halign(Gtk::ALIGN_CENTER);
+        handler().put(childHandler, 0, 0);
+        childHandler.set_valign(Gtk::Align::CENTER);
+        childHandler.set_halign(Gtk::Align::CENTER);
     }
 
-    void removeMainChildImpl(const std::shared_ptr<Xibo::Widget>& /*mainChild*/) override
+    void removeMainChildImpl(const std::shared_ptr<Xibo::Widget>& mainChild) override
     {
-        handler().remove();
+        handler().remove(handlerFor(mainChild));
     }
 };

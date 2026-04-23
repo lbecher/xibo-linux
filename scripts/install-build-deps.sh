@@ -100,6 +100,7 @@ native_packages=(
     libsqlitecpp-dev
     libhowardhinnant-date-dev
     libcrypto++-dev
+    libdbus-1-dev
     libgstreamer1.0-dev
     libgstreamer-plugins-base1.0-dev
     libboost-dev
@@ -108,8 +109,8 @@ native_packages=(
     libboost-filesystem-dev
     libboost-date-time-dev
     libboost-program-options-dev
-    libgtkmm-3.0-dev
-    libwebkit2gtk-4.1-dev
+    libgtkmm-4.0-dev
+    libwebkitgtk-6.0-dev
 )
 
 echo "==> Updating apt index"
@@ -128,10 +129,10 @@ declare -A cross_toolchain_pkg=(
 )
 
 target_dev_packages=(
-    libglibmm-2.4-dev
+    libglibmm-2.68-dev
     libgstreamer1.0-dev
     libgstreamer-plugins-base1.0-dev
-    libwebkit2gtk-4.1-dev
+    libwebkitgtk-6.0-dev
     libsqlite3-dev
     libssl-dev
     libzmq3-dev
@@ -141,8 +142,9 @@ target_dev_packages=(
     libboost-date-time-dev
     libboost-program-options-dev
     libcrypto++-dev
+    libdbus-1-dev
     libhowardhinnant-date-dev
-    libgtkmm-3.0-dev
+    libgtkmm-4.0-dev
 )
 
 foreign_arches="$(dpkg --print-foreign-architectures)"

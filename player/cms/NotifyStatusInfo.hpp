@@ -8,8 +8,9 @@ struct NotifyStatusInfo
 {
     std::string string() const;
 
-    LayoutId currentLayoutId;
-    StorageUsageInfo spaceUsageInfo;
+    LayoutId currentLayoutId = EmptyLayoutId;
+    StorageUsageInfo spaceUsageInfo{};
     Hostname deviceName;
     std::string timezone;
+    bool hasSpaceUsageInfo = false;
 };

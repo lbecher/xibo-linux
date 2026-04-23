@@ -38,4 +38,5 @@ private:
 
 private:
     Gtk::Image handler_;
+    Glib::RefPtr<Gdk::Pixbuf> pixbuf_;
 };

@@ -1,8 +1,12 @@
 #include "WebViewGtk.hpp"
 
+#include "common/PlayerRuntimeError.hpp"
+#include "common/logger/Logging.hpp"
 #include "common/types/Uri.hpp"
 
-#include <webkit2/webkit2.h>
+#ifdef USE_WEBKITGTK
+#include <webkit/webkit.h>
+#endif
 
 namespace ph = std::placeholders;
 
@@ -10,64 +14,83 @@ WebViewGtk::WebViewGtk(int width, int height) : WidgetGtk{handler_}
 {
     WidgetGtk::setSize(width, height);
 
-    webView_ = reinterpret_cast<WebKitWebView*>(webkit_web_view_new());
-    auto widget = Gtk::manage(Glib::wrap(reinterpret_cast<GtkWidget*>(webView_)));
-    handler_.add(*widget);
+#ifdef USE_WEBKITGTK
+    auto* webView = webkit_web_view_new();
+    webViewWidget_ = Glib::wrap(webView);
+    webViewWidget_->set_hexpand(true);
+    webViewWidget_->set_vexpand(true);
+    webViewWidget_->set_size_request(width, height);
+    webViewWidget_->set_visible(true);
+    handler_.set_child(*webViewWidget_);
+    handler_.set_policy(Gtk::PolicyType::NEVER, Gtk::PolicyType::NEVER);
 
-    // GTK+ doesn't change the physical size of the widget immediately. Instead, we need to wait for size-allocate
-    // signal. However, it emits too often even if the widget hasn't been actually resized so we block it after handler
-    // execution and unblock during next setSize
-    // We need this because WebView doesn't reload its content even when the parent widget has been resized
-    sizeAllocateConnection_ = handler_.signal_size_allocate().connect([this](Gtk::Allocation&) {
-        reload();
-        sizeAllocateConnection_.block();
-    });
+    g_signal_connect(webView, "load-failed", G_CALLBACK(+[](WebKitWebView*,
+                                                            WebKitLoadEvent,
+                                                            char* failingUri,
+                                                            GError* error,
+                                                            gpointer) -> gboolean {
+                         Log::error("[WebViewGtk] Failed to load {}: {}",
+                                    failingUri ? failingUri : "",
+                                    error ? error->message : "unknown error");
+                         return false;
+                     }),
+                     nullptr);
+
+    g_signal_connect(webView, "load-changed", G_CALLBACK(+[](WebKitWebView*, WebKitLoadEvent loadEvent, gpointer) {
+                         if (loadEvent == WEBKIT_LOAD_FINISHED)
+                         {
+                             Log::debug("[WebViewGtk] Load finished");
+                         }
+                     }),
+                     nullptr);
+#endif
 }
 
 void WebViewGtk::show()
 {
-    handler_.show_all();
+    handler_.set_visible(true);
 }
 
 void WebViewGtk::setSize(int width, int height)
 {
-    sizeAllocateConnection_.unblock();
     WidgetGtk::setSize(width, height);
+#ifdef USE_WEBKITGTK
+    if (webViewWidget_)
+    {
+        webViewWidget_->set_size_request(width, height);
+    }
+#endif
 }
 
 void WebViewGtk::reload()
 {
-    webkit_web_view_reload(webView_);
+#ifdef USE_WEBKITGTK
+    webkit_web_view_reload(WEBKIT_WEB_VIEW(webViewWidget_->gobj()));
+#else
+    throw PlayerRuntimeError{"WebViewGtk", "WebKitGTK support is not available"};
+#endif
 }
 
 void WebViewGtk::load(const Uri& uri)
 {
-    webkit_web_view_load_uri(webView_, uri.string().c_str());
+#ifdef USE_WEBKITGTK
+    webkit_web_view_load_uri(WEBKIT_WEB_VIEW(webViewWidget_->gobj()), uri.string().c_str());
+#else
+    (void)uri;
+    throw PlayerRuntimeError{"WebViewGtk", "WebKitGTK support is not available"};
+#endif
 }
 
 void WebViewGtk::enableTransparency()
 {
-    handler_.signal_screen_changed().connect(std::bind(&WebViewGtk::screenChanged, this, ph::_1));
-    screenChanged(handler_.get_screen());
-
+#ifdef USE_WEBKITGTK
     GdkRGBA transparent;
     transparent.red = 0.0;
     transparent.green = 0.0;
     transparent.blue = 0.0;
     transparent.alpha = 0.0;
-    webkit_web_view_set_background_color(webView_, &transparent);
-}
-
-void WebViewGtk::screenChanged(const Glib::RefPtr<Gdk::Screen>& screen)
-{
-    if (screen)
-    {
-        auto visual = screen->get_rgba_visual();
-        if (visual)
-        {
-            gtk_widget_set_visual(reinterpret_cast<GtkWidget*>(handler_.gobj()), visual->gobj());
-        }
-    }
+    webkit_web_view_set_background_color(WEBKIT_WEB_VIEW(webViewWidget_->gobj()), &transparent);
+#endif
 }
 
 Gtk::ScrolledWindow& WebViewGtk::handler()
