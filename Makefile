@@ -27,10 +27,10 @@ package-apt-amd64:
 
 package-apt-arm64:
 	mkdir -p $(DIST_DIR)
-	dpkg-buildpackage -us -uc -b -a arm64
+	CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ dpkg-buildpackage -us -uc -b -a arm64
 	mv -f ../xibo-player_*_arm64.deb ../xibo-player_*_arm64.buildinfo ../xibo-player_*_arm64.changes ../xibo-player-dbgsym_*_arm64.ddeb $(DIST_DIR)/ 2>/dev/null || true
 
 package-apt-armhf:
 	mkdir -p $(DIST_DIR)
-	dpkg-buildpackage -us -uc -b -a armhf
+	CC=arm-linux-gnueabihf-gcc CXX=arm-linux-gnueabihf-g++ dpkg-buildpackage -us -uc -b -a armhf
 	mv -f ../xibo-player_*_armhf.deb ../xibo-player_*_armhf.buildinfo ../xibo-player_*_armhf.changes ../xibo-player-dbgsym_*_armhf.ddeb $(DIST_DIR)/ 2>/dev/null || true
