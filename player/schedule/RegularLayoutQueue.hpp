@@ -13,6 +13,7 @@ public:
 
     void updateCurrent(LayoutId id);
     LayoutId next() const;
+    LayoutId previous() const;
     LayoutId current() const;
     bool inQueue(LayoutId id) const;
 

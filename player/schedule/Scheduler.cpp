@@ -101,6 +101,69 @@ void Scheduler::clearOverrides()
     }
 }
 
+void Scheduler::triggerNextLayout()
+{
+    cleanupExpiredOverrides();
+    if (cleanupExpiredCriteria() && schedule_)
+    {
+        reloadQueue();
+    }
+
+    if (!schedule_) return;
+
+    auto nextId = regularQueue_.next();
+    if (nextId == EmptyLayoutId)
+    {
+        Log::error("[Scheduler] Trigger next requested, but no valid layout is available");
+        return;
+    }
+
+    Log::info("[Scheduler] Trigger next resolved to layout {}", nextId);
+    applyLayoutOverride(nextId, DateTime::now(), 0);
+}
+
+void Scheduler::triggerPreviousLayout()
+{
+    cleanupExpiredOverrides();
+    if (cleanupExpiredCriteria() && schedule_)
+    {
+        reloadQueue();
+    }
+
+    if (!schedule_) return;
+
+    auto previousId = regularQueue_.previous();
+    if (previousId == EmptyLayoutId)
+    {
+        Log::error("[Scheduler] Trigger previous requested, but no valid layout is available");
+        return;
+    }
+
+    Log::info("[Scheduler] Trigger previous resolved to layout {}", previousId);
+    applyLayoutOverride(previousId, DateTime::now(), 0);
+}
+
+bool Scheduler::triggerLayoutById(LayoutId id)
+{
+    cleanupExpiredOverrides();
+    if (cleanupExpiredCriteria() && schedule_)
+    {
+        reloadQueue();
+    }
+
+    if (!schedule_) return false;
+
+    if (!layoutById(id))
+    {
+        Log::error("[Scheduler] Trigger navLayout ignored: layout {} is not in current schedule", id);
+        return false;
+    }
+
+    Log::info("[Scheduler] Trigger navLayout resolved to layout {}", id);
+    applyLayoutOverride(id, DateTime::now(), 0);
+    return true;
+}
+
 void Scheduler::addOrReplaceCriteria(const std::string& metric, const std::string& value, int ttl)
 {
     criteria_[metric] = ActiveCriteria{value, DateTime::now() + DateTime::Seconds(ttl)};

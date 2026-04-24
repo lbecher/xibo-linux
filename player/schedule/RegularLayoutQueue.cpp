@@ -35,6 +35,23 @@ LayoutId RegularLayoutQueue::next() const
     return currentId_;
 }
 
+LayoutId RegularLayoutQueue::previous() const
+{
+    if (!empty())
+    {
+        auto currentIndex = layoutIndexBy(currentId_).value_or(FirstItemIndex);
+        size_t previousIndex = currentIndex == FirstItemIndex ? size() - 1 : currentIndex - 1;
+        currentId_ = at(previousIndex).id;
+        nextIndex_ = increaseIndex(previousIndex);
+    }
+    else
+    {
+        currentId_ = defaultLayout_ ? defaultLayout_->id : EmptyLayoutId;
+    }
+
+    return currentId_;
+}
+
 LayoutId RegularLayoutQueue::current() const
 {
     return currentId_;

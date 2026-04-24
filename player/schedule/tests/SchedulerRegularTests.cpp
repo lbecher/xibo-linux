@@ -159,3 +159,42 @@ TEST_F(SchedulerLayoutTests, RegularLayoutsInactiveCriteriaAreSkipped)
 
     EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 1);
 }
+
+TEST_F(SchedulerLayoutTests, TriggerNextLayoutAppliesImmediateOverride)
+{
+    auto scheduler = construct();
+    auto schedule = makeRegularSchedule(DefaultTestId, DefaultTestId + 1, DefaultTestId + 2, DefaultTestId + 3);
+    scheduler->reloadSchedule(std::move(schedule));
+
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 1);
+
+    scheduler->triggerNextLayout();
+
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 2);
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 3);
+}
+
+TEST_F(SchedulerLayoutTests, TriggerPreviousLayoutAppliesImmediateOverride)
+{
+    auto scheduler = construct();
+    auto schedule = makeRegularSchedule(DefaultTestId, DefaultTestId + 1, DefaultTestId + 2, DefaultTestId + 3);
+    scheduler->reloadSchedule(std::move(schedule));
+
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 1);
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 2);
+
+    scheduler->triggerPreviousLayout();
+
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 1);
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 2);
+}
+
+TEST_F(SchedulerLayoutTests, TriggerLayoutByIdAppliesImmediateOverride)
+{
+    auto scheduler = construct();
+    auto schedule = makeRegularSchedule(DefaultTestId, DefaultTestId + 1, DefaultTestId + 2, DefaultTestId + 3);
+    scheduler->reloadSchedule(std::move(schedule));
+
+    EXPECT_TRUE(scheduler->triggerLayoutById(DefaultTestId + 3));
+    EXPECT_EQ(scheduler->nextLayout(), DefaultTestId + 3);
+}

@@ -108,7 +108,8 @@ void FileCacheImpl::save(const std::string& fileName, const std::string& fileCon
 
     FileSystem::writeToFile(path, fileContent);
 
-    addToCache(fileName, Md5Hash::fromString(fileContent), hash);
+    auto savedHash = Md5Hash::fromFile(path);
+    addToCache(fileName, savedHash, hash);
 }
 
 void FileCacheImpl::save(const std::string& fileName, const std::string& fileContent, const DateTime& lastUpdate)
@@ -117,7 +118,8 @@ void FileCacheImpl::save(const std::string& fileName, const std::string& fileCon
 
     FileSystem::writeToFile(path, fileContent);
 
-    addToCache(fileName, Md5Hash::fromString(fileContent), lastUpdate);
+    auto savedHash = Md5Hash::fromFile(path);
+    addToCache(fileName, savedHash, lastUpdate);
 }
 
 void FileCacheImpl::markAsInvalid(const std::string& filename)

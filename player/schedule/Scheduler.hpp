@@ -23,6 +23,9 @@ public:
     void applyLayoutOverride(LayoutId id, const DateTime& createdDt, int duration);
     void addOverlayOverride(LayoutId id, const DateTime& createdDt, int duration);
     void clearOverrides();
+    void triggerNextLayout();
+    void triggerPreviousLayout();
+    bool triggerLayoutById(LayoutId id);
     void addOrReplaceCriteria(const std::string& metric, const std::string& value, int ttl = 300);
 
     LayoutId nextLayout() const;

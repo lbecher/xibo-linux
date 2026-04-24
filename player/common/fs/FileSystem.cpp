@@ -76,8 +76,7 @@ std::string FileSystem::readFromFile(const FilePath& path)
 void FileSystem::writeToFile(const FilePath& path, const std::string& content)
 {
     std::ofstream out(path.string(), std::ios::binary);
-
-    out << content;
+    out.write(content.data(), static_cast<std::streamsize>(content.size()));
 }
 
 StorageUsageInfo FileSystem::storageUsageFor(const FilePath& path)

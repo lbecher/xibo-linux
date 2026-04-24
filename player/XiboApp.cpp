@@ -30,7 +30,64 @@
 #include "common/storage/FileCacheImpl.hpp"
 #include "common/system/System.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <cstring>
+
 static std::unique_ptr<XiboApp> g_app;
+
+namespace
+{
+std::string lowerTrimmed(std::string value)
+{
+    value.erase(std::remove_if(value.begin(), value.end(), [](unsigned char ch) { return std::isspace(ch); }), value.end());
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) { return std::tolower(ch); });
+    return value;
+}
+
+bool parseInt(const std::string& input, int& parsed)
+{
+    if (input.empty())
+    {
+        return false;
+    }
+
+    if (!std::all_of(input.begin(), input.end(), [](unsigned char ch) { return std::isdigit(ch); }))
+    {
+        return false;
+    }
+
+    try
+    {
+        parsed = std::stoi(input);
+        return true;
+    }
+    catch (const std::exception&)
+    {
+        return false;
+    }
+}
+
+bool parseLayoutIdFromTrigger(const std::string& triggerCode, int& layoutId)
+{
+    if (parseInt(triggerCode, layoutId))
+    {
+        return true;
+    }
+
+    constexpr const char* prefixes[] = {"navlayout:", "layout:", "layoutid:"};
+    for (auto prefix : prefixes)
+    {
+        auto prefixSize = std::strlen(prefix);
+        if (triggerCode.rfind(prefix, 0) == 0)
+        {
+            return parseInt(triggerCode.substr(prefixSize), layoutId);
+        }
+    }
+
+    return false;
+}
+} // namespace
 
 XiboApp& xiboApp()
 {
@@ -122,8 +179,7 @@ XiboApp::XiboApp(const std::string& name) :
             ++controlCount_;
             lastTriggerCode_ = request.trigger;
             lastTriggerSourceId_ = request.id;
-
-            Log::info("[Control] Trigger received: code={}, sourceId={}", request.trigger, request.id);
+            handleTriggerRequest(request);
         });
     });
     webserver_->setDurationReceived([this](const DurationRequest& request) {
@@ -132,11 +188,7 @@ XiboApp::XiboApp(const std::string& name) :
             lastDurationOperation_ = request.operation;
             lastDurationSourceId_ = request.id;
             lastDuration_ = request.duration;
-
-            Log::info("[Control] Duration request received: operation={}, sourceId={}, duration={}",
-                      request.operation,
-                      request.id,
-                      request.duration);
+            handleDurationRequest(request);
         });
     });
     webserver_->setFaultReceived([this](const FaultRequest& request) {
@@ -454,4 +506,65 @@ void XiboApp::onCollectionFinished(const PlayerError& error)
     {
         Log::info("[CollectionInterval] Cycle finished successfully");
     }
+}
+
+void XiboApp::handleTriggerRequest(const TriggerRequest& request)
+{
+    auto triggerCode = lowerTrimmed(request.trigger);
+    Log::info("[Control] Trigger received: code='{}', normalized='{}', sourceId={}", request.trigger, triggerCode, request.id);
+
+    if (triggerCode.empty())
+    {
+        Log::error("[Control] Trigger ignored: empty trigger code");
+        return;
+    }
+
+    if (triggerCode == "next")
+    {
+        scheduler_->triggerNextLayout();
+        return;
+    }
+
+    if (triggerCode == "previous" || triggerCode == "prev")
+    {
+        scheduler_->triggerPreviousLayout();
+        return;
+    }
+
+    int layoutId = EmptyLayoutId;
+    if (parseLayoutIdFromTrigger(triggerCode, layoutId))
+    {
+        if (!scheduler_->triggerLayoutById(layoutId))
+        {
+            Log::error("[Control] navLayout trigger ignored: target layout {} is not available", layoutId);
+        }
+        return;
+    }
+
+    Log::error("[Control] Trigger '{}' is not implemented yet on Linux player", request.trigger);
+}
+
+void XiboApp::handleDurationRequest(const DurationRequest& request)
+{
+    auto operation = lowerTrimmed(request.operation);
+    Log::info("[Control] Duration request received: operation='{}', sourceId={}, duration={}",
+              operation,
+              request.id,
+              request.duration);
+
+    if (operation == "expire")
+    {
+        scheduler_->triggerNextLayout();
+        return;
+    }
+
+    if (operation == "extend" || operation == "set")
+    {
+        Log::error("[Control] Duration operation '{}' is not implemented yet for sourceId={} on Linux player",
+                   operation,
+                   request.id);
+        return;
+    }
+
+    Log::error("[Control] Unknown duration operation '{}'", request.operation);
 }

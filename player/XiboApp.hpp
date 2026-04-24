@@ -47,6 +47,8 @@ private:
     std::unique_ptr<LayoutsManager> createLayoutManager();
     std::unique_ptr<CollectionInterval> createCollectionInterval(XmdsRequestSender& xmdsManager);
     std::unique_ptr<ScreenShotInterval> createScreenshotInterval(XmdsRequestSender& xmdsManager, Xibo::Window& window);
+    void handleTriggerRequest(const TriggerRequest& request);
+    void handleDurationRequest(const DurationRequest& request);
 
     void onCollectionFinished(const PlayerError& error);
     GeneralInfo collectGeneralInfo();

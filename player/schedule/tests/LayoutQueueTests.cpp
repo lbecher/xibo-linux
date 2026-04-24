@@ -157,3 +157,29 @@ TEST(RegularLayoutQueue, UpdateCurrentLayoutNotInQueueDefault)
 
     EXPECT_EQ(queue.current(), EmptyLayoutId);
 }
+
+TEST(RegularLayoutQueue, PreviousLayoutShouldPreservePosition)
+{
+    auto queue = queueWithSamePriorities<RegularLayoutQueue>();
+
+    ASSERT_EQ(queue.size(), 3);
+
+    EXPECT_EQ(queue.next(), DefaultTestId);
+    EXPECT_EQ(queue.current(), DefaultTestId);
+    EXPECT_EQ(queue.next(), DefaultTestId + 1);
+    EXPECT_EQ(queue.current(), DefaultTestId + 1);
+
+    EXPECT_EQ(queue.previous(), DefaultTestId);
+    EXPECT_EQ(queue.current(), DefaultTestId);
+    EXPECT_EQ(queue.next(), DefaultTestId + 1);
+    EXPECT_EQ(queue.current(), DefaultTestId + 1);
+}
+
+TEST(RegularLayoutQueue, PreviousLayoutOnDefaultOnly)
+{
+    auto queue = queueWithSamePriorities<RegularLayoutQueue>({});
+    queue.addDefault(DefaultScheduledLayout{DefaultTestId, {}});
+
+    EXPECT_EQ(queue.previous(), DefaultTestId);
+    EXPECT_EQ(queue.current(), DefaultTestId);
+}
