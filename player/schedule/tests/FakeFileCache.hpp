@@ -12,6 +12,7 @@ public:
     MOCK_CONST_METHOD1(cached, bool(const RegularFile& file));
     MOCK_CONST_METHOD1(cached, bool(const ResourceFile& file));
     MOCK_CONST_METHOD2(cached, bool(const std::string& filename, const Md5Hash& hash));
+    MOCK_CONST_METHOD1(usesTimestampValidation, bool(const std::string& filename));
     MOCK_CONST_METHOD0(cachedFiles, std::vector<std::string>());
     MOCK_CONST_METHOD0(invalidFiles, std::vector<std::string>());
     MOCK_METHOD1(markAsInvalid, void(const std::string& filename));

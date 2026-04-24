@@ -31,35 +31,48 @@
 #include "common/system/System.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 #include <cctype>
 #include <cstring>
+#include <thread>
 
 static std::unique_ptr<XiboApp> g_app;
 
 namespace
 {
-std::string lowerTrimmed(std::string value)
+std::string trim(std::string value)
 {
-    value.erase(std::remove_if(value.begin(), value.end(), [](unsigned char ch) { return std::isspace(ch); }), value.end());
+    auto isSpace = [](unsigned char ch) { return std::isspace(ch); };
+
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), [&](unsigned char ch) { return !isSpace(ch); }));
+    value.erase(
+        std::find_if(value.rbegin(), value.rend(), [&](unsigned char ch) { return !isSpace(ch); }).base(), value.end());
+
+    return value;
+}
+
+std::string toLower(std::string value)
+{
     std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) { return std::tolower(ch); });
     return value;
 }
 
 bool parseInt(const std::string& input, int& parsed)
 {
-    if (input.empty())
+    auto raw = trim(input);
+    if (raw.empty())
     {
         return false;
     }
 
-    if (!std::all_of(input.begin(), input.end(), [](unsigned char ch) { return std::isdigit(ch); }))
+    if (!std::all_of(raw.begin(), raw.end(), [](unsigned char ch) { return std::isdigit(ch); }))
     {
         return false;
     }
 
     try
     {
-        parsed = std::stoi(input);
+        parsed = std::stoi(raw);
         return true;
     }
     catch (const std::exception&)
@@ -83,6 +96,74 @@ bool parseLayoutIdFromTrigger(const std::string& triggerCode, int& layoutId)
         {
             return parseInt(triggerCode.substr(prefixSize), layoutId);
         }
+    }
+
+    return false;
+}
+
+struct NavWidgetTarget
+{
+    int widgetId = 0;
+    int regionId = 0;
+};
+
+bool parseNavWidgetTarget(const std::string& triggerCode, NavWidgetTarget& target)
+{
+    auto raw = trim(triggerCode);
+    auto lowered = toLower(raw);
+
+    constexpr const char* navWidgetPrefix = "navwidget:";
+    constexpr const char* widgetPrefix = "widget:";
+
+    std::string payload;
+    if (lowered.rfind(navWidgetPrefix, 0) == 0)
+    {
+        payload = raw.substr(std::strlen(navWidgetPrefix));
+    }
+    else if (lowered.rfind(widgetPrefix, 0) == 0)
+    {
+        payload = raw.substr(std::strlen(widgetPrefix));
+    }
+    else
+    {
+        return false;
+    }
+
+    payload = trim(payload);
+    if (payload.empty())
+    {
+        return false;
+    }
+
+    auto divider = payload.find(':');
+    if (divider == std::string::npos)
+    {
+        return parseInt(payload, target.widgetId);
+    }
+
+    auto region = payload.substr(0, divider);
+    auto widget = payload.substr(divider + 1);
+
+    return parseInt(region, target.regionId) && parseInt(widget, target.widgetId);
+}
+
+bool parseCommandPayload(const std::string& triggerCode, std::string& commandPayload)
+{
+    auto raw = trim(triggerCode);
+    auto lowered = toLower(raw);
+
+    constexpr const char* commandPrefix = "command:";
+    constexpr const char* execPrefix = "exec:";
+
+    if (lowered.rfind(commandPrefix, 0) == 0)
+    {
+        commandPayload = trim(raw.substr(std::strlen(commandPrefix)));
+        return !commandPayload.empty();
+    }
+    if (lowered.rfind(execPrefix, 0) == 0)
+    {
+        commandPayload = trim(raw.substr(std::strlen(execPrefix)));
+        return !commandPayload.empty();
     }
 
     return false;
@@ -246,14 +327,28 @@ std::unique_ptr<XmrManager> XiboApp::createXmrManager()
         CHECK_UI_THREAD();
         Log::info("[XMR] Start unscheduled collection");
 
-        collectionInterval_->collectNow();
+        if (collectionInterval_)
+        {
+            collectionInterval_->collectNow();
+        }
+        else
+        {
+            Log::error("[XMR] collectNow ignored: collection interval is not initialized yet");
+        }
     });
 
     manager->screenshot().connect([this]() {
         CHECK_UI_THREAD();
         Log::info("[XMR] Taking unscheduled screenshot");
 
-        screenShotInterval_->takeScreenShot();
+        if (screenShotInterval_)
+        {
+            screenShotInterval_->takeScreenShot();
+        }
+        else
+        {
+            Log::error("[XMR] screenshot ignored: screenshot interval is not initialized yet");
+        }
     });
 
     manager->layoutChange().connect([this](const XmrMessage& message) {
@@ -262,7 +357,14 @@ std::unique_ptr<XmrManager> XiboApp::createXmrManager()
 
         if (message.downloadRequired)
         {
-            collectionInterval_->collectNow();
+            if (collectionInterval_)
+            {
+                collectionInterval_->collectNow();
+            }
+            else
+            {
+                Log::error("[XMR] changeLayout download requested but collection interval is not initialized yet");
+            }
         }
 
         scheduler_->applyLayoutOverride(message.layoutId, message.createdDt, message.duration);
@@ -274,7 +376,14 @@ std::unique_ptr<XmrManager> XiboApp::createXmrManager()
 
         if (message.downloadRequired)
         {
-            collectionInterval_->collectNow();
+            if (collectionInterval_)
+            {
+                collectionInterval_->collectNow();
+            }
+            else
+            {
+                Log::error("[XMR] overlayLayout download requested but collection interval is not initialized yet");
+            }
         }
 
         scheduler_->addOverlayOverride(message.layoutId, message.createdDt, message.duration);
@@ -295,6 +404,58 @@ std::unique_ptr<XmrManager> XiboApp::createXmrManager()
         {
             scheduler_->addOrReplaceCriteria(update.metric, update.value, update.ttl);
         }
+    });
+
+    manager->commandAction().connect([this](const XmrMessage& message) {
+        CHECK_UI_THREAD();
+        auto payload = !message.command.empty() ? message.command : message.commandCode;
+
+        if (payload.empty())
+        {
+            Log::error("[XMR] commandAction ignored: both command and commandCode are empty");
+            return;
+        }
+
+        Log::info("[XMR] commandAction received: commandCode='{}' commandLength={}",
+                  message.commandCode,
+                  message.command.size());
+        handleCommandTrigger(payload);
+    });
+
+    manager->dataUpdate().connect([this](const XmrMessage& message) {
+        CHECK_UI_THREAD();
+        Log::info("[XMR] dataUpdate received for widgetId={} sourceId={}", message.widgetId, message.sourceId);
+        if (collectionInterval_)
+        {
+            collectionInterval_->collectNow();
+        }
+        else
+        {
+            Log::error("[XMR] dataUpdate ignored: collection interval is not initialized yet");
+        }
+    });
+
+    manager->triggerWebhook().connect([this](const XmrMessage& message) {
+        CHECK_UI_THREAD();
+        if (message.triggerCode.empty())
+        {
+            Log::error("[XMR] triggerWebhook ignored: triggerCode is empty");
+            return;
+        }
+
+        TriggerRequest request;
+        request.trigger = message.triggerCode;
+        request.id = message.sourceId;
+        Log::info("[XMR] triggerWebhook forwarding to trigger pipeline: code='{}' sourceId={}",
+                  request.trigger,
+                  request.id);
+        handleTriggerRequest(request);
+    });
+
+    manager->purgeAll().connect([this]() {
+        CHECK_UI_THREAD();
+        Log::info("[XMR] purgeAll received");
+        purgeAllCachedResources();
     });
 
     return manager;
@@ -435,6 +596,12 @@ void XiboApp::checkResourceDirectory()
             continue;
         }
 
+        if (fileCache_->usesTimestampValidation(file))
+        {
+            Log::info("[XiboApp] Cached file '{}' uses timestamp validation, skipping startup hash re-check", file);
+            continue;
+        }
+
         auto onDiskHash = Md5Hash::fromFile(fullPath);
         if (!fileCache_->cached(file, onDiskHash))
         {
@@ -510,29 +677,56 @@ void XiboApp::onCollectionFinished(const PlayerError& error)
 
 void XiboApp::handleTriggerRequest(const TriggerRequest& request)
 {
-    auto triggerCode = lowerTrimmed(request.trigger);
-    Log::info("[Control] Trigger received: code='{}', normalized='{}', sourceId={}", request.trigger, triggerCode, request.id);
+    auto trigger = trim(request.trigger);
+    auto normalized = toLower(trigger);
+    Log::info("[Control] Trigger received: code='{}', normalized='{}', sourceId={}", request.trigger, normalized, request.id);
 
-    if (triggerCode.empty())
+    if (normalized.empty())
     {
         Log::error("[Control] Trigger ignored: empty trigger code");
         return;
     }
 
-    if (triggerCode == "next")
+    if (normalized == "next")
     {
         scheduler_->triggerNextLayout();
         return;
     }
 
-    if (triggerCode == "previous" || triggerCode == "prev")
+    if (normalized == "previous" || normalized == "prev")
     {
         scheduler_->triggerPreviousLayout();
         return;
     }
 
+    NavWidgetTarget navWidget;
+    if (parseNavWidgetTarget(trigger, navWidget))
+    {
+        if (!layoutManager_)
+        {
+            Log::error("[Control] navWidget ignored: layout manager is not ready yet");
+            return;
+        }
+
+        auto resolvedRegionId = navWidget.regionId > 0 ? navWidget.regionId : request.id;
+        if (!layoutManager_->navigateToWidget(navWidget.widgetId, resolvedRegionId))
+        {
+            Log::error("[Control] navWidget trigger ignored: widgetId={} regionId={} not found",
+                       navWidget.widgetId,
+                       resolvedRegionId);
+        }
+        return;
+    }
+
+    std::string commandPayload;
+    if (parseCommandPayload(trigger, commandPayload))
+    {
+        handleCommandTrigger(commandPayload);
+        return;
+    }
+
     int layoutId = EmptyLayoutId;
-    if (parseLayoutIdFromTrigger(triggerCode, layoutId))
+    if (parseLayoutIdFromTrigger(normalized, layoutId))
     {
         if (!scheduler_->triggerLayoutById(layoutId))
         {
@@ -546,25 +740,110 @@ void XiboApp::handleTriggerRequest(const TriggerRequest& request)
 
 void XiboApp::handleDurationRequest(const DurationRequest& request)
 {
-    auto operation = lowerTrimmed(request.operation);
+    auto operation = toLower(trim(request.operation));
     Log::info("[Control] Duration request received: operation='{}', sourceId={}, duration={}",
               operation,
               request.id,
               request.duration);
 
-    if (operation == "expire")
+    if (!layoutManager_)
     {
-        scheduler_->triggerNextLayout();
+        Log::error("[Control] Duration operation '{}' ignored: layout manager is not ready yet", operation);
         return;
     }
 
-    if (operation == "extend" || operation == "set")
+    if (operation == "expire")
     {
-        Log::error("[Control] Duration operation '{}' is not implemented yet for sourceId={} on Linux player",
-                   operation,
-                   request.id);
+        if (!layoutManager_->expireDurationTarget(request.id))
+        {
+            Log::error("[Control] Duration expire fallback: target not found for sourceId={}, forcing next layout",
+                       request.id);
+            scheduler_->triggerNextLayout();
+        }
+        return;
+    }
+
+    if (operation == "extend")
+    {
+        if (!layoutManager_->extendDurationTarget(request.id, request.duration))
+        {
+            Log::error("[Control] Duration extend ignored: sourceId={} duration={} has no active target",
+                       request.id,
+                       request.duration);
+        }
+        return;
+    }
+
+    if (operation == "set")
+    {
+        if (!layoutManager_->setDurationTarget(request.id, request.duration))
+        {
+            Log::error("[Control] Duration set ignored: sourceId={} duration={} has no active target",
+                       request.id,
+                       request.duration);
+        }
         return;
     }
 
     Log::error("[Control] Unknown duration operation '{}'", request.operation);
+}
+
+void XiboApp::handleCommandTrigger(const std::string& command)
+{
+    if (!playerSettings_.enableShellCommands())
+    {
+        Log::error("[Control] Command trigger denied: enableShellCommands is disabled");
+        return;
+    }
+
+    Log::info("[Control] Executing command trigger: {}", command);
+    std::thread([command] {
+        auto exitCode = std::system(command.c_str());
+        if (exitCode == 0)
+        {
+            Log::info("[Control] Command completed successfully: {}", command);
+        }
+        else
+        {
+            Log::error("[Control] Command failed (exitCode={}): {}", exitCode, command);
+        }
+    }).detach();
+}
+
+void XiboApp::purgeAllCachedResources()
+{
+    auto resourceRoot = cmsSettings_.resourcesPath();
+    int removedCount = 0;
+
+    for (auto&& file : fileCache_->cachedFiles())
+    {
+        auto fullPath = resourceRoot / file;
+        if (FileSystem::exists(fullPath) && FileSystem::isRegularFile(fullPath))
+        {
+            if (FileSystem::remove(fullPath))
+            {
+                ++removedCount;
+            }
+            else
+            {
+                Log::error("[XiboApp] purgeAll: unable to remove '{}'", fullPath.string());
+            }
+        }
+
+        fileCache_->markAsInvalid(file);
+    }
+
+    Log::info("[XiboApp] purgeAll completed: removedFiles={} invalidatedCachedEntries={}",
+              removedCount,
+              fileCache_->cachedFiles().size());
+
+    if (scheduler_)
+    {
+        scheduler_->reloadQueue();
+    }
+
+    if (collectionInterval_)
+    {
+        collectionInterval_->collectNow();
+    }
 }

@@ -16,6 +16,10 @@ public:
 
     void setBackground(std::shared_ptr<Xibo::Image>&& background) override;
     void addRegion(std::unique_ptr<Xibo::Region>&& region, int left, int top, int zorder) override;
+    bool navigateToWidget(int widgetId, int regionId) override;
+    bool expireDurationTarget(int sourceId) override;
+    bool extendDurationTarget(int sourceId, int duration) override;
+    bool setDurationTarget(int sourceId, int duration) override;
     SignalLayoutExpired& expired() override;
     SignalLayoutStatReady& statReady() override;
     SignalLayoutMediaStatsReady& mediaStatsReady() override;
@@ -32,6 +36,9 @@ private:
     bool areAllRegionsExpired() const;
     void startRegions();
     void stopRegions();
+    Xibo::Region* regionBySourceId(int sourceId);
+    Xibo::Region* regionById(int regionId);
+    Xibo::Region* regionByWidgetId(int widgetId);
 
 private:
     MainLayoutOptions options_;

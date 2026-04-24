@@ -1,10 +1,12 @@
 #include "control/media/MediaImpl.hpp"
 #include "common/constants.hpp"
+#include <algorithm>
 
 MediaImpl::MediaImpl(const MediaOptions& options) :
     options_(options),
     timer_(std::make_unique<Timer>()),
-    playing_(false)
+    playing_(false),
+    expiresAt_()
 {
     assert(timer_);
 }
@@ -29,6 +31,7 @@ void MediaImpl::start()
     if (playing_) return;
 
     playing_ = true;
+    expiresAt_ = {};
 
     if (options_.statEnabled)
     {
@@ -46,6 +49,7 @@ void MediaImpl::startTimer(int duration)
 {
     if (duration > 0)
     {
+        expiresAt_ = DateTime::now() + DateTime::Seconds(duration);
         timer_->startOnce(std::chrono::seconds(duration), [this] { finished_(); });
     }
 }
@@ -79,6 +83,7 @@ void MediaImpl::stop()
     }
 
     timer_->stop();
+    expiresAt_ = {};
     stopAttachedMedia();
 
     onStopped();
@@ -92,6 +97,34 @@ bool MediaImpl::statEnabled() const
 int MediaImpl::id() const
 {
     return options_.id;
+}
+
+bool MediaImpl::setRemainingDuration(int seconds)
+{
+    if (!playing_)
+    {
+        return false;
+    }
+
+    restartTimerWithRemainingDuration(seconds);
+    return true;
+}
+
+bool MediaImpl::extendRemainingDuration(int seconds)
+{
+    if (!playing_ || seconds == 0)
+    {
+        return false;
+    }
+
+    auto remainingSeconds = 0;
+    if (expiresAt_.valid())
+    {
+        remainingSeconds = std::max(0, static_cast<int>((expiresAt_ - DateTime::now()).total_seconds()));
+    }
+
+    restartTimerWithRemainingDuration(remainingSeconds + seconds);
+    return true;
 }
 
 void MediaImpl::inTransition(std::unique_ptr<TransitionExecutor>&& transition)
@@ -151,4 +184,19 @@ MediaGeometry::Valign MediaImpl::valign() const
 std::shared_ptr<Xibo::Widget> MediaImpl::view()
 {
     return widget_;
+}
+
+void MediaImpl::restartTimerWithRemainingDuration(int remainingDuration)
+{
+    timer_->stop();
+
+    if (remainingDuration <= 0)
+    {
+        expiresAt_ = {};
+        finished_();
+        return;
+    }
+
+    expiresAt_ = DateTime::now() + DateTime::Seconds(remainingDuration);
+    timer_->startOnce(std::chrono::seconds(remainingDuration), [this] { finished_(); });
 }

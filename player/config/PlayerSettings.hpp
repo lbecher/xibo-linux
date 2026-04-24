@@ -66,6 +66,9 @@ public:
     Field<bool>& preventSleep();
     const Field<bool>& preventSleep() const;
 
+    Field<bool>& enableShellCommands();
+    const Field<bool>& enableShellCommands() const;
+
     Field<std::string>& displayName();
     const Field<std::string>& displayName() const;
 
@@ -81,6 +84,7 @@ private:
     NamedField<std::string> xmrNetworkAddress_{"xmrNetworkAddress"};
     NamedField<std::string> logLevel_{"logLevel", "debug"};
     NamedField<int> screenshotInterval_{"screenshotInterval", 0};
+    NamedField<bool> enableShellCommands_{"enableShellCommands", false};
     NamedField<unsigned short> embeddedServerPort_{"embeddedServerPort",
                                                    9696};   // FIXME should listen to value changed and do reconfig
     NamedField<bool> preventSleep_{"preventSleep", false};  // FIXME should listen to value changed and do reconfig

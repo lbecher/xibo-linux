@@ -73,6 +73,17 @@ bool FileCacheImpl::cached(const std::string& filename, const Md5Hash& hash) con
     return false;
 }
 
+bool FileCacheImpl::usesTimestampValidation(const std::string& filename) const
+{
+    auto node = fileCache_.get_child_optional(fullPath(filename));
+    if (!node)
+    {
+        return false;
+    }
+
+    return node->get_optional<int>(LastUpdateAttr).has_value();
+}
+
 std::vector<std::string> FileCacheImpl::cachedFiles() const
 {
     std::vector<std::string> files;

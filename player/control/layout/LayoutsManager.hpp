@@ -24,6 +24,10 @@ public:
     void fetchMainLayout();
     void fetchOverlays();
     void statsEnabled(bool enable);
+    bool navigateToWidget(int widgetId, int regionId);
+    bool expireDurationTarget(int sourceId);
+    bool extendDurationTarget(int sourceId, int duration);
+    bool setDurationTarget(int sourceId, int duration);
 
     MainLayoutLoaded& mainLayoutFetched();
     OverlaysLoaded& overlaysFetched();

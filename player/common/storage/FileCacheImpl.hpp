@@ -14,6 +14,7 @@ public:
     bool cached(const RegularFile& file) const override;
     bool cached(const ResourceFile& file) const override;
     bool cached(const std::string& filename, const Md5Hash& hash) const override;
+    bool usesTimestampValidation(const std::string& filename) const override;
     std::vector<std::string> cachedFiles() const override;
     std::vector<std::string> invalidFiles() const override;
     void save(const std::string& filename, const std::string& content, const Md5Hash& hash) override;

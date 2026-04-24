@@ -13,6 +13,7 @@ public:
     virtual bool cached(const RegularFile& file) const = 0;
     virtual bool cached(const ResourceFile& file) const = 0;
     virtual bool cached(const std::string& filename, const Md5Hash& hash) const = 0;
+    virtual bool usesTimestampValidation(const std::string& filename) const = 0;
     virtual std::vector<std::string> cachedFiles() const = 0;
     virtual std::vector<std::string> invalidFiles() const = 0;
     virtual void markAsInvalid(const std::string& filename) = 0;

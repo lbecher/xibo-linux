@@ -89,6 +89,63 @@ void LayoutsManager::statsEnabled(bool enable)
     statsEnabled_ = enable;
 }
 
+bool LayoutsManager::navigateToWidget(int widgetId, int regionId)
+{
+    if (currentMainLayout_ && currentMainLayout_->navigateToWidget(widgetId, regionId))
+    {
+        Log::info("[LayoutsManager] navWidget resolved in main layout: widgetId={} regionId={}", widgetId, regionId);
+        return true;
+    }
+
+    for (auto&& [layoutId, overlay] : overlayLayouts_)
+    {
+        if (overlay && overlay->navigateToWidget(widgetId, regionId))
+        {
+            Log::info("[LayoutsManager] navWidget resolved in overlay {}: widgetId={} regionId={}",
+                      layoutId,
+                      widgetId,
+                      regionId);
+            return true;
+        }
+    }
+
+    Log::error("[LayoutsManager] navWidget target not found: widgetId={} regionId={}", widgetId, regionId);
+    return false;
+}
+
+bool LayoutsManager::expireDurationTarget(int sourceId)
+{
+    if (!currentMainLayout_)
+    {
+        Log::error("[LayoutsManager] Duration expire ignored: no current main layout");
+        return false;
+    }
+
+    return currentMainLayout_->expireDurationTarget(sourceId);
+}
+
+bool LayoutsManager::extendDurationTarget(int sourceId, int duration)
+{
+    if (!currentMainLayout_)
+    {
+        Log::error("[LayoutsManager] Duration extend ignored: no current main layout");
+        return false;
+    }
+
+    return currentMainLayout_->extendDurationTarget(sourceId, duration);
+}
+
+bool LayoutsManager::setDurationTarget(int sourceId, int duration)
+{
+    if (!currentMainLayout_)
+    {
+        Log::error("[LayoutsManager] Duration set ignored: no current main layout");
+        return false;
+    }
+
+    return currentMainLayout_->setDurationTarget(sourceId, duration);
+}
+
 template <typename LayoutParser>
 std::unique_ptr<Xibo::MainLayout> LayoutsManager::createLayout(int layoutId)
 {

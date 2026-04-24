@@ -24,6 +24,11 @@ struct XmrMessage
     int layoutId = EmptyLayoutId;
     int duration = 0;
     bool downloadRequired = false;
+    int widgetId = 0;
+    int sourceId = 0;
+    std::string triggerCode;
+    std::string commandCode;
+    std::string command;
     std::vector<CriteriaUpdate> criteriaUpdates;
 };
 
@@ -33,6 +38,10 @@ using LayoutChangeAction = boost::signals2::signal<void(const XmrMessage&)>;
 using OverlayLayoutAction = boost::signals2::signal<void(const XmrMessage&)>;
 using RevertToScheduleAction = boost::signals2::signal<void()>;
 using CriteriaUpdateAction = boost::signals2::signal<void(const XmrMessage&)>;
+using CommandAction = boost::signals2::signal<void(const XmrMessage&)>;
+using DataUpdateAction = boost::signals2::signal<void(const XmrMessage&)>;
+using TriggerWebhookAction = boost::signals2::signal<void(const XmrMessage&)>;
+using PurgeAllAction = boost::signals2::signal<void()>;
 
 class XmrManager
 {
@@ -48,6 +57,10 @@ public:
     OverlayLayoutAction& overlayLayout();
     RevertToScheduleAction& revertToSchedule();
     CriteriaUpdateAction& criteriaUpdate();
+    CommandAction& commandAction();
+    DataUpdateAction& dataUpdate();
+    TriggerWebhookAction& triggerWebhook();
+    PurgeAllAction& purgeAll();
     XmrStatus status();
 
 private:
@@ -67,5 +80,9 @@ private:
     OverlayLayoutAction overlayLayoutAction_;
     RevertToScheduleAction revertToScheduleAction_;
     CriteriaUpdateAction criteriaUpdateAction_;
+    CommandAction commandAction_;
+    DataUpdateAction dataUpdateAction_;
+    TriggerWebhookAction triggerWebhookAction_;
+    PurgeAllAction purgeAllAction_;
     XmrStatus info_;
 };

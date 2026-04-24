@@ -49,6 +49,8 @@ private:
     std::unique_ptr<ScreenShotInterval> createScreenshotInterval(XmdsRequestSender& xmdsManager, Xibo::Window& window);
     void handleTriggerRequest(const TriggerRequest& request);
     void handleDurationRequest(const DurationRequest& request);
+    void handleCommandTrigger(const std::string& command);
+    void purgeAllCachedResources();
 
     void onCollectionFinished(const PlayerError& error);
     GeneralInfo collectGeneralInfo();

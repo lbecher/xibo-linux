@@ -6,6 +6,7 @@
 #include "control/widgets/FixedContainer.hpp"
 
 #include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 class RegionImpl : public Xibo::Region, private boost::noncopyable
 {
@@ -18,6 +19,13 @@ public:
     void addMedia(std::unique_ptr<Xibo::Media>&& media) override;
     void start() override;
     void stop() override;
+    int id() const override;
+    bool hasMediaId(int mediaId) const override;
+    bool hasActiveMediaId(int mediaId) const override;
+    bool navigateToMediaId(int mediaId) override;
+    bool showNextMedia() override;
+    bool setActiveMediaDuration(int duration) override;
+    bool extendActiveMediaDuration(int duration) override;
     SignalRegionExpired& expired() override;
     std::shared_ptr<Xibo::Widget> view() override;
 
@@ -33,6 +41,7 @@ private:
     bool shouldBeMediaReplaced() const;
     size_t getNextMediaIndex() const;
     bool isExpired() const;
+    boost::optional<size_t> mediaIndexById(int mediaId) const;
 
 private:
     RegionOptions options_;

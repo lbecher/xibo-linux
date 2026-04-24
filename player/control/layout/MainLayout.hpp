@@ -21,6 +21,10 @@ namespace Xibo
 
         virtual void setBackground(std::shared_ptr<Image>&& background) = 0;
         virtual void addRegion(std::unique_ptr<Region>&& region, int left, int top, int zorder) = 0;
+        virtual bool navigateToWidget(int widgetId, int regionId) = 0;
+        virtual bool expireDurationTarget(int sourceId) = 0;
+        virtual bool extendDurationTarget(int sourceId, int duration) = 0;
+        virtual bool setDurationTarget(int sourceId, int duration) = 0;
         virtual SignalLayoutExpired& expired() = 0;
         virtual SignalLayoutStatReady& statReady() = 0;
         virtual SignalLayoutMediaStatsReady& mediaStatsReady() = 0;

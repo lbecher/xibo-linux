@@ -19,6 +19,8 @@ public:
 
     bool statEnabled() const override;
     int id() const override;
+    bool setRemainingDuration(int seconds) override;
+    bool extendRemainingDuration(int seconds) override;
 
     void inTransition(std::unique_ptr<TransitionExecutor>&& transition) override;
     void outTransition(std::unique_ptr<TransitionExecutor>&& transition) override;
@@ -36,6 +38,7 @@ protected:
 
 private:
     void startTimer(int duration);
+    void restartTimerWithRemainingDuration(int remainingDuration);
     void startAttachedMedia();
     void stopAttachedMedia();
 
@@ -47,6 +50,7 @@ private:
     std::unique_ptr<Timer> timer_;
     Stats::PlayingTime interval_;
     bool playing_;
+    DateTime expiresAt_;
 
     std::shared_ptr<Xibo::Widget> widget_;
     std::unique_ptr<Xibo::Media> attachedMedia_;

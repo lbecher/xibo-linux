@@ -84,6 +84,26 @@ CriteriaUpdateAction& XmrManager::criteriaUpdate()
     return criteriaUpdateAction_;
 }
 
+CommandAction& XmrManager::commandAction()
+{
+    return commandAction_;
+}
+
+DataUpdateAction& XmrManager::dataUpdate()
+{
+    return dataUpdateAction_;
+}
+
+TriggerWebhookAction& XmrManager::triggerWebhook()
+{
+    return triggerWebhookAction_;
+}
+
+PurgeAllAction& XmrManager::purgeAll()
+{
+    return purgeAllAction_;
+}
+
 XmrStatus XmrManager::status()
 {
     return info_;
@@ -155,6 +175,11 @@ XmrMessage XmrManager::parseMessage(const std::string& jsonMessage)
     message.layoutId = tree.get("layoutId", EmptyLayoutId);
     message.duration = tree.get("duration", 0);
     message.downloadRequired = tree.get("downloadRequired", false);
+    message.widgetId = tree.get("widgetId", 0);
+    message.sourceId = tree.get("sourceId", 0);
+    message.triggerCode = tree.get("triggerCode", std::string{});
+    message.commandCode = tree.get("commandCode", std::string{});
+    message.command = tree.get("command", std::string{});
 
     if (auto updates = tree.get_child_optional("criteriaUpdates"))
     {
@@ -211,6 +236,18 @@ DateTime XmrManager::parseCreatedDt(const std::string& createdDt)
 
 void XmrManager::processXmrMessage(const XmrMessage& message)
 {
+    Log::info("[XMR] Received action='{}' layoutId={} duration={} widgetId={} sourceId={} triggerCode='{}' "
+              "commandCode='{}' commandLength={} downloadRequired={}",
+              message.action,
+              message.layoutId,
+              message.duration,
+              message.widgetId,
+              message.sourceId,
+              message.triggerCode,
+              message.commandCode,
+              message.command.size(),
+              message.downloadRequired);
+
     if (isMessageExpired(message)) return;
 
     if (message.action == "collectNow" ||
@@ -239,6 +276,22 @@ void XmrManager::processXmrMessage(const XmrMessage& message)
     else if (message.action == "criteriaUpdate")
     {
         MainLoop::pushToUiThread([this, message]() { criteriaUpdateAction_(message); });
+    }
+    else if (message.action == "commandAction")
+    {
+        MainLoop::pushToUiThread([this, message]() { commandAction_(message); });
+    }
+    else if (message.action == "dataUpdate")
+    {
+        MainLoop::pushToUiThread([this, message]() { dataUpdateAction_(message); });
+    }
+    else if (message.action == "triggerWebhook")
+    {
+        MainLoop::pushToUiThread([this, message]() { triggerWebhookAction_(message); });
+    }
+    else if (message.action == "purgeAll")
+    {
+        MainLoop::pushToUiThread([this]() { purgeAllAction_(); });
     }
     else
     {

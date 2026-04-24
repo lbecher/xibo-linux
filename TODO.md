@@ -13,25 +13,27 @@
 
 #### 1) Embedded server actions parity (`/trigger` and `/duration`)
 - [x] Implement real action execution pipeline on Linux (not only logging counters). (`next`, `previous`, `navLayout` by id/prefix, `duration/expire`)
-- [ ] Support action paths equivalent to Windows behavior (`next`, `previous`, `nav*`, `widget`, `command`, duration-expiry flow).
+- [x] Support action paths equivalent to Windows behavior (`next`, `previous`, `nav*`, `widget`, `command`, duration-expiry flow). (implemented via embedded trigger parser)
 - [x] Wire schedule/layout manager integration so actions affect the active timeline immediately.
 - [x] Add structured logs for action input, resolution, and execution result.
 - [x] Add tests (or scripted validation) for each trigger type. (added scheduler/queue trigger tests)
 Acceptance:
 - Triggering the same action sequence on Windows and Linux yields the same visible behavior and state transitions.
 Remaining scope notes:
-- [ ] Implement `navWidget` behavior.
-- [ ] Implement `command` action behavior.
-- [ ] Implement `duration/extend` and `duration/set` behavior by source widget/region.
+- [x] Implement `navWidget` behavior. (trigger code format: `navWidget:<widgetId>` or `navWidget:<regionId>:<widgetId>`)
+- [x] Implement `command` action behavior. (trigger code format: `command:<shell command>`, gated by `enableShellCommands`)
+- [x] Implement `duration/extend` and `duration/set` behavior by source widget/region.
 
 #### 2) XMR actions + transport parity
-- [ ] Add missing action handlers on Linux: `commandAction`, `dataUpdate`, `triggerWebhook`, `purgeAll`.
-- [ ] Keep existing handlers (`changeLayout`, `overlayLayout`, `revertToSchedule`, `screenShot`, etc.) behavior-compatible.
+- [x] Add missing action handlers on Linux: `commandAction`, `dataUpdate`, `triggerWebhook`, `purgeAll`.
+- [x] Keep existing handlers (`changeLayout`, `overlayLayout`, `revertToSchedule`, `screenShot`, etc.) behavior-compatible.
 - [ ] Add WebSocket XMR support parity where Windows supports `XmrType=ws`.
-- [ ] Add retry/backoff and reconnect behavior matching current Windows expectations.
-- [ ] Add logs with action id, payload summary, and execution outcome.
+- [x] Add retry/backoff and reconnect behavior matching current Windows expectations. (ZMQ reconnect interval + max interval configured)
+- [x] Add logs with action id, payload summary, and execution outcome.
 Acceptance:
 - CMS-issued XMR commands that work on Windows execute successfully on Linux with equivalent results.
+Remaining scope notes:
+- [ ] Implement full WebSocket transport mode (`XmrType=ws`) handshake/channel flow equivalent to Windows.
 
 #### 3) GTK4 rendering correctness (layout geometry and scale)
 - [ ] Fix coordinate mapping to keep all regions/media at correct position/size.
@@ -44,13 +46,13 @@ Acceptance:
 
 #### 4) Cache/hash validation compatibility
 - [x] Align Linux file hash verification with CMS/Windows canonical behavior (same algorithm/normalization/input bytes). (hash now calculated from bytes persisted to disk)
-- [ ] Document and handle known cases that can change file bytes after collection (if any).
+- [x] Document and handle known cases that can change file bytes after collection (if any). (`updated`/timestamp-backed cache entries skip startup hash re-check)
 - [x] Add diagnostics to show hash source, expected hash, computed hash, and normalization flags.
 - [ ] Add regression checks for `1.html`, `2.html`, and global dependants (example: `bundle.min.js`).
 Acceptance:
 - No false-positive "cache hash mismatch" on freshly collected files that are valid in Windows player.
 Remaining scope notes:
-- [ ] Verify whether resource HTML files (`*.html` with `updated` field) should be hash-validated at startup or only timestamp-validated.
+- [x] Verify whether resource HTML files (`*.html` with `updated` field) should be hash-validated at startup or only timestamp-validated. (timestamp-validated entries now bypass startup hash check)
 - [ ] Add a startup regression scenario that reproduces and validates the `1.html`/`2.html` mismatch fix.
 
 ### P1 (High - major feature gaps)

@@ -33,6 +33,74 @@ void MainLayoutImpl::addRegion(std::unique_ptr<Xibo::Region>&& region, int left,
     regions_.emplace_back(std::move(region));
 }
 
+bool MainLayoutImpl::navigateToWidget(int widgetId, int regionId)
+{
+    Xibo::Region* region = nullptr;
+
+    if (regionId > 0)
+    {
+        region = regionById(regionId);
+        if (!region)
+        {
+            Log::error("[MainLayout] navWidget ignored: regionId {} not found", regionId);
+            return false;
+        }
+
+        if (!region->hasMediaId(widgetId))
+        {
+            Log::error("[MainLayout] navWidget ignored: widget {} not found in region {}", widgetId, regionId);
+            return false;
+        }
+    }
+    else
+    {
+        region = regionByWidgetId(widgetId);
+        if (!region)
+        {
+            Log::error("[MainLayout] navWidget ignored: widget {} not found in layout {}", widgetId, id());
+            return false;
+        }
+    }
+
+    return region->navigateToMediaId(widgetId);
+}
+
+bool MainLayoutImpl::expireDurationTarget(int sourceId)
+{
+    auto region = regionBySourceId(sourceId);
+    if (!region)
+    {
+        Log::error("[MainLayout] Duration expire ignored: sourceId {} not mapped to active region", sourceId);
+        return false;
+    }
+
+    return region->showNextMedia();
+}
+
+bool MainLayoutImpl::extendDurationTarget(int sourceId, int duration)
+{
+    auto region = regionBySourceId(sourceId);
+    if (!region)
+    {
+        Log::error("[MainLayout] Duration extend ignored: sourceId {} not mapped to active region", sourceId);
+        return false;
+    }
+
+    return region->extendActiveMediaDuration(duration);
+}
+
+bool MainLayoutImpl::setDurationTarget(int sourceId, int duration)
+{
+    auto region = regionBySourceId(sourceId);
+    if (!region)
+    {
+        Log::error("[MainLayout] Duration set ignored: sourceId {} not mapped to active region", sourceId);
+        return false;
+    }
+
+    return region->setActiveMediaDuration(duration);
+}
+
 void MainLayoutImpl::monitorMediaStats(Xibo::Region& region)
 {
     for (auto&& media : region.mediaList())
@@ -135,4 +203,48 @@ void MainLayoutImpl::stopRegions()
     {
         region->stop();
     }
+}
+
+Xibo::Region* MainLayoutImpl::regionBySourceId(int sourceId)
+{
+    if (sourceId <= 0)
+    {
+        return nullptr;
+    }
+
+    for (auto&& region : regions_)
+    {
+        if (region->hasActiveMediaId(sourceId))
+        {
+            return region.get();
+        }
+    }
+
+    return regionById(sourceId);
+}
+
+Xibo::Region* MainLayoutImpl::regionById(int regionId)
+{
+    for (auto&& region : regions_)
+    {
+        if (region->id() == regionId)
+        {
+            return region.get();
+        }
+    }
+
+    return nullptr;
+}
+
+Xibo::Region* MainLayoutImpl::regionByWidgetId(int widgetId)
+{
+    for (auto&& region : regions_)
+    {
+        if (region->hasMediaId(widgetId))
+        {
+            return region.get();
+        }
+    }
+
+    return nullptr;
 }

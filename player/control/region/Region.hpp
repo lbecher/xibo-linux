@@ -19,6 +19,13 @@ namespace Xibo
         virtual void addMedia(std::unique_ptr<Media>&& media) = 0;
         virtual void start() = 0;
         virtual void stop() = 0;
+        virtual int id() const = 0;
+        virtual bool hasMediaId(int mediaId) const = 0;
+        virtual bool hasActiveMediaId(int mediaId) const = 0;
+        virtual bool navigateToMediaId(int mediaId) = 0;
+        virtual bool showNextMedia() = 0;
+        virtual bool setActiveMediaDuration(int duration) = 0;
+        virtual bool extendActiveMediaDuration(int duration) = 0;
         virtual SignalRegionExpired& expired() = 0;
         virtual const MediaList& mediaList() const = 0;
         virtual std::shared_ptr<Widget> view() = 0;

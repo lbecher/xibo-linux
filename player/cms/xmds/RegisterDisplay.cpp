@@ -67,6 +67,7 @@ RegisterDisplay::Result Soap::ResponseParser<RegisterDisplay::Result>::parseBody
         int y = static_cast<int>(displayNode.get<double>(Settings::YPos));
         result.playerSettings.position().setValue(x, y);
         result.playerSettings.logLevel().setValue(displayNode.get<std::string>(Settings::LogLevel));
+        result.playerSettings.enableShellCommands().setValue(displayNode.get<bool>(Settings::EnableShellCommands, false));
         result.playerSettings.screenshotInterval().setValue(displayNode.get<int>(Settings::ScreenShotRequestInterval));
         result.playerSettings.embeddedServerPort().setValue(
             displayNode.get<unsigned short>(Settings::EmbeddedServerPort));

@@ -5,6 +5,8 @@
 #include "control/region/GetMediaPosition.hpp"
 #include "control/widgets/FixedContainer.hpp"
 
+#include "common/logger/Logging.hpp"
+
 RegionImpl::RegionImpl(const RegionOptions& options) :
     options_(options),
     view_(FixedContainerFactory::create(options.width, options.height)),
@@ -68,6 +70,103 @@ void RegionImpl::stop()
         media->stop();
     }
     view_->hide();
+}
+
+int RegionImpl::id() const
+{
+    return options_.id;
+}
+
+bool RegionImpl::hasMediaId(int mediaId) const
+{
+    return mediaIndexById(mediaId).has_value();
+}
+
+bool RegionImpl::hasActiveMediaId(int mediaId) const
+{
+    if (mediaList_.empty())
+    {
+        return false;
+    }
+
+    return mediaList_[currentMediaIndex_]->id() == mediaId;
+}
+
+bool RegionImpl::navigateToMediaId(int mediaId)
+{
+    if (mediaList_.empty())
+    {
+        return false;
+    }
+
+    auto nextIndex = mediaIndexById(mediaId);
+    if (!nextIndex)
+    {
+        return false;
+    }
+
+    if (currentMediaIndex_ == nextIndex.value())
+    {
+        Log::info("[Region] Region {}: widget {} is already active", options_.id, mediaId);
+        return true;
+    }
+
+    if (mediaList_[currentMediaIndex_]->playing())
+    {
+        removeMedia(currentMediaIndex_);
+    }
+
+    Log::info("[Region] Region {}: navigating to widget {}", options_.id, mediaId);
+    placeMedia(nextIndex.value());
+    return true;
+}
+
+bool RegionImpl::showNextMedia()
+{
+    if (mediaList_.empty())
+    {
+        return false;
+    }
+
+    Log::info("[Region] Region {}: forcing next media (currentMediaId={})",
+              options_.id,
+              mediaList_[currentMediaIndex_]->id());
+    onMediaDurationTimeout();
+    return true;
+}
+
+bool RegionImpl::setActiveMediaDuration(int duration)
+{
+    if (mediaList_.empty())
+    {
+        return false;
+    }
+
+    auto mediaId = mediaList_[currentMediaIndex_]->id();
+    auto changed = mediaList_[currentMediaIndex_]->setRemainingDuration(duration);
+    Log::info("[Region] Region {}: set duration={} for mediaId={} changed={}",
+              options_.id,
+              duration,
+              mediaId,
+              changed);
+    return changed;
+}
+
+bool RegionImpl::extendActiveMediaDuration(int duration)
+{
+    if (mediaList_.empty())
+    {
+        return false;
+    }
+
+    auto mediaId = mediaList_[currentMediaIndex_]->id();
+    auto changed = mediaList_[currentMediaIndex_]->extendRemainingDuration(duration);
+    Log::info("[Region] Region {}: extend duration by {} for mediaId={} changed={}",
+              options_.id,
+              duration,
+              mediaId,
+              changed);
+    return changed;
 }
 
 SignalRegionExpired& RegionImpl::expired()
@@ -155,4 +254,17 @@ size_t RegionImpl::getNextMediaIndex() const
     if (nextContentIndex >= mediaList_.size()) return FirstMediaIndex;
 
     return nextContentIndex;
+}
+
+boost::optional<size_t> RegionImpl::mediaIndexById(int mediaId) const
+{
+    for (size_t index = 0; index < mediaList_.size(); ++index)
+    {
+        if (mediaList_[index]->id() == mediaId)
+        {
+            return index;
+        }
+    }
+
+    return {};
 }

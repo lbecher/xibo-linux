@@ -12,6 +12,7 @@ void PlayerSettings::fromFields(const PlayerSettings& settings)
     position_.setValue(settings.position().values());
     logLevel_.setValue(settings.logLevel());
     screenshotInterval_.setValue(settings.screenshotInterval());
+    enableShellCommands_.setValue(settings.enableShellCommands());
     embeddedServerPort_.setValue(settings.embeddedServerPort());
     preventSleep_.setValue(settings.preventSleep());
     displayName_.setValue(settings.displayName());
@@ -99,6 +100,16 @@ Field<int>& PlayerSettings::screenshotInterval()
 const Field<int>& PlayerSettings::screenshotInterval() const
 {
     return screenshotInterval_;
+}
+
+Field<bool>& PlayerSettings::enableShellCommands()
+{
+    return enableShellCommands_;
+}
+
+const Field<bool>& PlayerSettings::enableShellCommands() const
+{
+    return enableShellCommands_;
 }
 
 Field<unsigned short>& PlayerSettings::embeddedServerPort()

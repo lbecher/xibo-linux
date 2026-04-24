@@ -40,6 +40,15 @@ int Zmq::Socket::safeClose() noexcept
 void Zmq::Socket::connect(const std::string& host, const Channels& channels)
 {
     if (!handle_) return;
+
+    const int reconnectIntervalMs = 5000;
+    const int reconnectIntervalMaxMs = 30000;
+    if (zmq_setsockopt(handle_, ZMQ_RECONNECT_IVL, &reconnectIntervalMs, sizeof(reconnectIntervalMs)) == ErrorCode)
+        throw Zmq::Exception{};
+    if (zmq_setsockopt(handle_, ZMQ_RECONNECT_IVL_MAX, &reconnectIntervalMaxMs, sizeof(reconnectIntervalMaxMs)) ==
+        ErrorCode)
+        throw Zmq::Exception{};
+
     if (zmq_connect(handle_, host.c_str()) == ErrorCode) throw Zmq::Exception{};
 
     for (auto&& channel : channels)

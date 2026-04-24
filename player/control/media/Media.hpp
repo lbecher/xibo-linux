@@ -26,6 +26,8 @@ namespace Xibo
 
         virtual bool statEnabled() const = 0;
         virtual int id() const = 0;
+        virtual bool setRemainingDuration(int seconds) = 0;
+        virtual bool extendRemainingDuration(int seconds) = 0;
 
         virtual void inTransition(std::unique_ptr<TransitionExecutor>&& transition) = 0;
         virtual void outTransition(std::unique_ptr<TransitionExecutor>&& transition) = 0;
