@@ -36,6 +36,16 @@ run_apt() {
     fi
 }
 
+run_apt_cross_install() {
+    # Alguns pacotes -dev multiarch podem conflitar em manpages compartilhadas.
+    # Forcamos overwrite apenas na instalacao das dependencias de arquitetura alvo.
+    if [[ ${EUID} -eq 0 ]]; then
+        apt-get install -y -o Dpkg::Options::="--force-overwrite" "$@"
+    else
+        sudo apt-get install -y -o Dpkg::Options::="--force-overwrite" "$@"
+    fi
+}
+
 normalize_arch() {
     case "$1" in
         arm64|aarch64) echo "arm64" ;;
@@ -85,7 +95,7 @@ native_packages=(
     build-essential
     cmake
     git
-    pkg-config
+    pkgconf
     debhelper-compat
     debhelper
     devscripts
@@ -134,8 +144,10 @@ target_dev_packages=(
     libgstreamer-plugins-base1.0-dev
     libwebkitgtk-6.0-dev
     libsqlite3-dev
+    libsqlitecpp-dev
     libssl-dev
     libzmq3-dev
+    libspdlog-dev
     libboost-system-dev
     libboost-thread-dev
     libboost-filesystem-dev
@@ -145,6 +157,8 @@ target_dev_packages=(
     libdbus-1-dev
     libhowardhinnant-date-dev
     libgtkmm-4.0-dev
+    libgtest-dev
+    libgmock-dev
 )
 
 foreign_arches="$(dpkg --print-foreign-architectures)"
@@ -180,5 +194,5 @@ for arch in "${cross_arches[@]}"; do
     done
 
     echo "==> Installing target development packages for ${arch}"
-    run_apt install -y "${arch_packages[@]}"
+    run_apt_cross_install "${arch_packages[@]}"
 done

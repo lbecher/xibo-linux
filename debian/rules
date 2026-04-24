@@ -12,3 +12,7 @@ override_dh_auto_configure:
 
 override_dh_auto_install:
 	dh_auto_install --destdir=debian/tmp
+
+override_dh_clean:
+	# Evita varrer toda a arvore (incluindo dados locais de Docker sem permissao).
+	dh_clean -d

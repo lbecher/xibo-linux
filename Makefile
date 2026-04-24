@@ -27,7 +27,11 @@ package-apt-amd64:
 
 package-apt-arm64:
 	mkdir -p $(DIST_DIR)
-	CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ dpkg-buildpackage -us -uc -b -a arm64
+	if [ "$(shell dpkg --print-architecture)" = "arm64" ]; then \
+		dpkg-buildpackage -us -uc -b -a arm64; \
+	else \
+		CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ dpkg-buildpackage -us -uc -b -a arm64; \
+	fi
 	mv -f ../xibo-player_*_arm64.deb ../xibo-player_*_arm64.buildinfo ../xibo-player_*_arm64.changes ../xibo-player-dbgsym_*_arm64.ddeb $(DIST_DIR)/ 2>/dev/null || true
 
 package-apt-armhf:
