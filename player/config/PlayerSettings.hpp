@@ -54,6 +54,15 @@ public:
     Field<std::string>& xmrNetworkAddress();
     const Field<std::string>& xmrNetworkAddress() const;
 
+    Field<std::string>& xmrType();
+    const Field<std::string>& xmrType() const;
+
+    Field<std::string>& xmrWebSocketAddress();
+    const Field<std::string>& xmrWebSocketAddress() const;
+
+    Field<std::string>& xmrCmsKey();
+    const Field<std::string>& xmrCmsKey() const;
+
     Field<std::string>& logLevel();
     const Field<std::string>& logLevel() const;
 
@@ -82,6 +91,9 @@ private:
     NamedField<int> collectInterval_{"collectInterval", 900};
     NamedField<bool> statsEnabled_{"statsEnabled", false};  // FIXME should listen to value
     NamedField<std::string> xmrNetworkAddress_{"xmrNetworkAddress"};
+    NamedField<std::string> xmrType_{"xmrType", "zmq"};
+    NamedField<std::string> xmrWebSocketAddress_{"xmrWebSocketAddress"};
+    NamedField<std::string> xmrCmsKey_{"xmrCmsKey"};
     NamedField<std::string> logLevel_{"logLevel", "debug"};
     NamedField<int> screenshotInterval_{"screenshotInterval", 0};
     NamedField<bool> enableShellCommands_{"enableShellCommands", false};

@@ -11,6 +11,9 @@ void PlayerSettingsSerializer::loadSettingsFrom(const FilePath& file, PlayerSett
                  settings.statsEnabled_,
                  settings.collectInterval_,
                  settings.xmrNetworkAddress_,
+                 settings.xmrType_,
+                 settings.xmrWebSocketAddress_,
+                 settings.xmrCmsKey_,
                  settings.enableShellCommands_,
                  settings.embeddedServerPort_,
                  settings.screenshotInterval_);
@@ -26,6 +29,9 @@ void PlayerSettingsSerializer::saveSettingsTo(const FilePath& file, const Player
                            settings.statsEnabled_,
                            settings.collectInterval_,
                            settings.xmrNetworkAddress_,
+                           settings.xmrType_,
+                           settings.xmrWebSocketAddress_,
+                           settings.xmrCmsKey_,
                            settings.enableShellCommands_,
                            settings.embeddedServerPort_,
                            settings.screenshotInterval_);

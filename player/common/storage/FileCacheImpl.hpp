@@ -33,7 +33,7 @@ private:
     void saveFileHashes(const FilePath& path);
 
 private:
-    boost::mutex fileCacheMutex_;
+    mutable boost::mutex fileCacheMutex_;
     XmlNode fileCache_;
     FilePath cacheFile_;
 };

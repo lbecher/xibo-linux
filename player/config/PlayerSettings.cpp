@@ -5,17 +5,34 @@
 
 void PlayerSettings::fromFields(const PlayerSettings& settings)
 {
-    collectInterval_.setValue(settings.collectInterval());
-    statsEnabled_.setValue(settings.statsEnabled());
-    xmrNetworkAddress_.setValue(settings.xmrNetworkAddress());
-    size_.setValue(settings.size().values());
-    position_.setValue(settings.position().values());
-    logLevel_.setValue(settings.logLevel());
-    screenshotInterval_.setValue(settings.screenshotInterval());
-    enableShellCommands_.setValue(settings.enableShellCommands());
-    embeddedServerPort_.setValue(settings.embeddedServerPort());
-    preventSleep_.setValue(settings.preventSleep());
-    displayName_.setValue(settings.displayName());
+    auto setIfChanged = [](auto& target, const auto& incomingValue) {
+        if (target.value() != incomingValue)
+        {
+            target.setValue(incomingValue);
+        }
+    };
+
+    auto setTupleIfChanged = [](auto& target, const auto& incomingValues) {
+        if (target.values() != incomingValues)
+        {
+            target.setValue(incomingValues);
+        }
+    };
+
+    setIfChanged(collectInterval_, settings.collectInterval().value());
+    setIfChanged(statsEnabled_, settings.statsEnabled().value());
+    setIfChanged(xmrNetworkAddress_, settings.xmrNetworkAddress().value());
+    setIfChanged(xmrType_, settings.xmrType().value());
+    setIfChanged(xmrWebSocketAddress_, settings.xmrWebSocketAddress().value());
+    setIfChanged(xmrCmsKey_, settings.xmrCmsKey().value());
+    setTupleIfChanged(size_, settings.size().values());
+    setTupleIfChanged(position_, settings.position().values());
+    setIfChanged(logLevel_, settings.logLevel().value());
+    setIfChanged(screenshotInterval_, settings.screenshotInterval().value());
+    setIfChanged(enableShellCommands_, settings.enableShellCommands().value());
+    setIfChanged(embeddedServerPort_, settings.embeddedServerPort().value());
+    setIfChanged(preventSleep_, settings.preventSleep().value());
+    setIfChanged(displayName_, settings.displayName().value());
 }
 
 void PlayerSettings::fromFile(const FilePath& file)
@@ -80,6 +97,36 @@ Field<std::string>& PlayerSettings::xmrNetworkAddress()
 const Field<std::string>& PlayerSettings::xmrNetworkAddress() const
 {
     return xmrNetworkAddress_;
+}
+
+Field<std::string>& PlayerSettings::xmrType()
+{
+    return xmrType_;
+}
+
+const Field<std::string>& PlayerSettings::xmrType() const
+{
+    return xmrType_;
+}
+
+Field<std::string>& PlayerSettings::xmrWebSocketAddress()
+{
+    return xmrWebSocketAddress_;
+}
+
+const Field<std::string>& PlayerSettings::xmrWebSocketAddress() const
+{
+    return xmrWebSocketAddress_;
+}
+
+Field<std::string>& PlayerSettings::xmrCmsKey()
+{
+    return xmrCmsKey_;
+}
+
+const Field<std::string>& PlayerSettings::xmrCmsKey() const
+{
+    return xmrCmsKey_;
 }
 
 Field<std::string>& PlayerSettings::logLevel()

@@ -57,6 +57,9 @@ namespace XmdsResources
             const std::string DownloadEndWindow = "downloadEndWindow";
             const std::string StatsEnabled = "statsEnabled";
             const std::string XmrNetworkAddress = "xmrNetworkAddress";
+            const std::string XmrType = "xmrType";
+            const std::string XmrWebSocketAddress = "xmrWebSocketAddress";
+            const std::string XmrCmsKey = "xmrCmsKey";
             const std::string Width = "sizeX";
             const std::string Height = "sizeY";
             const std::string XPos = "offsetX";

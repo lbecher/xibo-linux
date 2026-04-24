@@ -2,6 +2,7 @@
 
 #include "cms/xmds/Resources.hpp"
 #include "common/Utils.hpp"
+#include "common/logger/Logging.hpp"
 
 namespace Resources = XmdsResources::RegisterDisplay;
 namespace Settings = XmdsResources::RegisterDisplay::Settings;
@@ -57,9 +58,25 @@ RegisterDisplay::Result Soap::ResponseParser<RegisterDisplay::Result>::parseBody
     result.status.message = attrs.get<std::string>(Resources::StatusMessage);
     if (result.status.code == RegisterDisplay::Result::Status::Code::Ready)
     {
+        auto xmrNetworkAddress = displayNode.get<std::string>(Settings::XmrNetworkAddress, std::string{});
+        auto xmrType = displayNode.get<std::string>(Settings::XmrType, std::string{});
+        auto xmrWebSocketAddress = displayNode.get<std::string>(Settings::XmrWebSocketAddress, std::string{});
+        auto xmrCmsKey = displayNode.get<std::string>(Settings::XmrCmsKey, std::string{});
+        Log::info("[XMDS::RegisterDisplay] XMR fields: xmrType='{}' (present={}), xmrNetworkAddress='{}', "
+                  "xmrWebSocketAddress='{}' (present={}), xmrCmsKeyPresent={}",
+                  xmrType.empty() ? "<missing>" : xmrType,
+                  !xmrType.empty(),
+                  xmrNetworkAddress,
+                  xmrWebSocketAddress,
+                  !xmrWebSocketAddress.empty(),
+                  !xmrCmsKey.empty());
+
         result.playerSettings.collectInterval().setValue(displayNode.get<int>(Settings::CollectInterval));
         result.playerSettings.statsEnabled().setValue(displayNode.get<bool>(Settings::StatsEnabled));
-        result.playerSettings.xmrNetworkAddress().setValue(displayNode.get<std::string>(Settings::XmrNetworkAddress));
+        result.playerSettings.xmrNetworkAddress().setValue(xmrNetworkAddress);
+        result.playerSettings.xmrType().setValue(xmrType.empty() ? "zmq" : xmrType);
+        result.playerSettings.xmrWebSocketAddress().setValue(xmrWebSocketAddress);
+        result.playerSettings.xmrCmsKey().setValue(xmrCmsKey);
         int width = static_cast<int>(displayNode.get<double>(Settings::Width));
         int height = static_cast<int>(displayNode.get<double>(Settings::Height));
         result.playerSettings.size().setValue(width, height);

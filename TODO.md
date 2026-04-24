@@ -27,13 +27,13 @@ Remaining scope notes:
 #### 2) XMR actions + transport parity
 - [x] Add missing action handlers on Linux: `commandAction`, `dataUpdate`, `triggerWebhook`, `purgeAll`.
 - [x] Keep existing handlers (`changeLayout`, `overlayLayout`, `revertToSchedule`, `screenShot`, etc.) behavior-compatible.
-- [ ] Add WebSocket XMR support parity where Windows supports `XmrType=ws`.
+- [x] Add WebSocket XMR support parity where Windows supports `XmrType=ws`.
 - [x] Add retry/backoff and reconnect behavior matching current Windows expectations. (ZMQ reconnect interval + max interval configured)
 - [x] Add logs with action id, payload summary, and execution outcome.
 Acceptance:
 - CMS-issued XMR commands that work on Windows execute successfully on Linux with equivalent results.
 Remaining scope notes:
-- [ ] Implement full WebSocket transport mode (`XmrType=ws`) handshake/channel flow equivalent to Windows.
+- [x] Implement full WebSocket transport mode (`XmrType=ws`) handshake/channel flow equivalent to Windows.
 
 #### 3) GTK4 rendering correctness (layout geometry and scale)
 - [ ] Fix coordinate mapping to keep all regions/media at correct position/size.

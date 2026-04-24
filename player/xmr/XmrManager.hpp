@@ -4,6 +4,7 @@
 #include "schedule/ScheduleItem.hpp"
 #include "xmr/XmrChannel.hpp"
 #include "xmr/XmrStatus.hpp"
+#include "xmr/ws/Subscriber.hpp"
 #include "xmr/zmq/Subscriber.hpp"
 
 #include <boost/signals2/signal.hpp>
@@ -48,7 +49,11 @@ class XmrManager
 public:
     XmrManager(const XmrChannel& mainChannel);
 
-    void connect(const std::string& host);
+    void connect(const std::string& host,
+                 const std::string& xmrType,
+                 const std::string& webSocketAddress,
+                 const std::string& cmsKey,
+                 const std::string& cmsAddress);
     void stop();
 
     CollectionIntervalAction& collectionInterval();
@@ -64,6 +69,7 @@ public:
     XmrStatus status();
 
 private:
+    void processWebSocketMessage(const std::string& message);
     void processMultipartMessage(const Zmq::MultiPartMessage& message);
     std::string decryptMessage(const std::string& key, const std::string& message);
     XmrMessage parseMessage(const std::string& jsonMessage);
@@ -73,7 +79,14 @@ private:
 
 private:
     std::string mainChannel_;
+    std::string xmrHost_;
+    std::string xmrType_;
+    std::string webSocketAddress_;
+    std::string cmsKey_;
+    std::string cmsAddress_;
+    bool usingWebSocket_ = false;
     Zmq::Subscriber subscriber_;
+    Ws::Subscriber wsSubscriber_;
     CollectionIntervalAction collectionIntervalAction_;
     ScreenshotAction screenshotAction_;
     LayoutChangeAction layoutChangeAction_;

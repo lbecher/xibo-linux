@@ -43,6 +43,8 @@ public:
     static inline const Scheme FileScheme{"file"};
     static inline const Scheme HttpScheme{"http"};
     static inline const Scheme HttpsScheme{"https"};
+    static inline const Scheme WsScheme{"ws"};
+    static inline const Scheme WssScheme{"wss"};
 
     class Port : public StrongType<unsigned short>
     {
@@ -118,7 +120,9 @@ private:
 };
 
 const std::map<Uri::Scheme, Uri::Port> DefaultPorts{{Uri::Scheme{"http"}, Uri::Port{80}},
-                                                    {Uri::Scheme{"https"}, Uri::Port{443}}};
+                                                    {Uri::Scheme{"https"}, Uri::Port{443}},
+                                                    {Uri::Scheme{"ws"}, Uri::Port{80}},
+                                                    {Uri::Scheme{"wss"}, Uri::Port{443}}};
 
 std::ostream& operator<<(std::ostream& out, const Uri& uri);
 bool operator==(const Uri& first, const Uri& second);

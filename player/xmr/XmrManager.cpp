@@ -6,15 +6,28 @@
 #include "common/crypto/RsaManager.hpp"
 #include "common/dt/DateTime.hpp"
 #include "common/logger/Logging.hpp"
-#include "config/AppConfig.hpp"
 
+#include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+
+#include <stdexcept>
 
 const size_t CHANNEL_PART = 0;
 const size_t KEY_PART = 1;
 const size_t MESSAGE_PART = 2;
 
 const char* const HearbeatChannel = "H";
+
+std::string normalizeType(const std::string& type)
+{
+    auto normalized = boost::trim_copy(type);
+    boost::algorithm::to_lower(normalized);
+    if (normalized.empty())
+    {
+        return "zmq";
+    }
+    return normalized;
+}
 
 std::string normalizeZmqEndpoint(const std::string& host)
 {
@@ -26,32 +39,141 @@ std::string normalizeZmqEndpoint(const std::string& host)
     return "tcp://" + host;
 }
 
-XmrManager::XmrManager(const XmrChannel& mainChannel) : mainChannel_(static_cast<std::string>(mainChannel)) {}
+std::string defaultWebSocketEndpoint(const std::string& cmsAddress)
+{
+    if (cmsAddress.empty())
+    {
+        return {};
+    }
+
+    auto endpoint = cmsAddress;
+    if (boost::algorithm::istarts_with(endpoint, "https://"))
+    {
+        boost::algorithm::ireplace_first(endpoint, "https://", "wss://");
+    }
+    else if (boost::algorithm::istarts_with(endpoint, "http://"))
+    {
+        boost::algorithm::ireplace_first(endpoint, "http://", "ws://");
+    }
+
+    if (!endpoint.empty() && endpoint.back() != '/')
+    {
+        endpoint += "/";
+    }
+    endpoint += "xmr";
+
+    return endpoint;
+}
+
+XmrManager::XmrManager(const XmrChannel& mainChannel) : mainChannel_(static_cast<std::string>(mainChannel))
+{
+    subscriber_.messageReceived().connect(
+        [this](const Zmq::MultiPartMessage& message) { processMultipartMessage(message); });
+    wsSubscriber_.messageReceived().connect([this](const std::string& message) { processWebSocketMessage(message); });
+}
 
 // TODO: strong type
-void XmrManager::connect(const std::string& host)
+void XmrManager::connect(const std::string& host,
+                         const std::string& xmrType,
+                         const std::string& webSocketAddress,
+                         const std::string& cmsKey,
+                         const std::string& cmsAddress)
 {
-    if (info_.host == host) return;
+    const auto normalizedXmrType = normalizeType(xmrType);
+    const auto normalizedWsAddress = boost::trim_copy(webSocketAddress);
+    const auto normalizedCmsKey = boost::trim_copy(cmsKey);
+    const auto normalizedCmsAddress = boost::trim_copy(cmsAddress);
+    const auto normalizedHost = boost::trim_copy(host);
 
-    info_.host = host;
-    if (host.empty() || host == "DISABLED")
+    const auto requestedWebSocketEndpoint = !normalizedWsAddress.empty() ? normalizedWsAddress :
+                                                                         defaultWebSocketEndpoint(normalizedCmsAddress);
+    const auto shouldUseWebSocket = normalizedXmrType == "ws";
+    const auto endpoint = shouldUseWebSocket ? requestedWebSocketEndpoint : normalizeZmqEndpoint(normalizedHost);
+
+    const auto isSameConfig = shouldUseWebSocket ?
+                                  (xmrHost_ == normalizedHost &&
+                                   xmrType_ == normalizedXmrType &&
+                                   webSocketAddress_ == normalizedWsAddress &&
+                                   cmsKey_ == normalizedCmsKey &&
+                                   cmsAddress_ == normalizedCmsAddress &&
+                                   info_.host == endpoint) :
+                                  (xmrHost_ == normalizedHost &&
+                                   xmrType_ == normalizedXmrType &&
+                                   info_.host == endpoint);
+    if (isSameConfig) return;
+
+    xmrHost_ = normalizedHost;
+    xmrType_ = normalizedXmrType;
+    webSocketAddress_ = normalizedWsAddress;
+    cmsKey_ = normalizedCmsKey;
+    cmsAddress_ = normalizedCmsAddress;
+    info_.host = endpoint;
+
+    if (normalizedHost.empty() || normalizedHost == "DISABLED")
     {
         subscriber_.stop();
+        wsSubscriber_.stop();
+        usingWebSocket_ = false;
+        info_.host.clear();
         Log::info("[XMR] Not configured");
         return;
     }
 
-    auto endpoint = normalizeZmqEndpoint(host);
-    Log::info("[XMR] Connecting to {}", endpoint);
+    subscriber_.stop();
+    wsSubscriber_.stop();
 
-    subscriber_.messageReceived().connect(
-        [this](const Zmq::MultiPartMessage& message) { processMultipartMessage(message); });
-    subscriber_.run(endpoint, Zmq::Channels{mainChannel_, HearbeatChannel});
+    if (shouldUseWebSocket)
+    {
+        if (requestedWebSocketEndpoint.empty())
+        {
+            info_.host.clear();
+            Log::error("[XMR] WebSocket mode requested but no endpoint is available");
+            return;
+        }
+
+        try
+        {
+            auto uri = Uri::fromString(requestedWebSocketEndpoint);
+            auto scheme = static_cast<std::string>(uri.scheme());
+            boost::algorithm::to_lower(scheme);
+            if (scheme != "ws" && scheme != "wss")
+            {
+                throw std::runtime_error{"WebSocket endpoint must use ws:// or wss://"};
+            }
+
+            auto effectiveCmsKey = normalizedCmsKey;
+            if (effectiveCmsKey.empty())
+            {
+                info_.host.clear();
+                Log::error("[XMR] WebSocket mode requested but xmrCmsKey is empty");
+                return;
+            }
+            Log::info("[XMR] Connecting using websocket to {}", requestedWebSocketEndpoint);
+            wsSubscriber_.run(uri, effectiveCmsKey, mainChannel_);
+            usingWebSocket_ = true;
+        }
+        catch (std::exception& e)
+        {
+            usingWebSocket_ = false;
+            info_.host.clear();
+            Log::error("[XMR] Cannot start websocket subscriber for '{}': {}", requestedWebSocketEndpoint, e.what());
+        }
+    }
+    else
+    {
+        auto zmqEndpoint = normalizeZmqEndpoint(normalizedHost);
+        Log::info("[XMR] Connecting using ZMQ to {}", zmqEndpoint);
+        info_.host = zmqEndpoint;
+        subscriber_.run(zmqEndpoint, Zmq::Channels{mainChannel_, HearbeatChannel});
+        usingWebSocket_ = false;
+    }
 }
 
 void XmrManager::stop()
 {
     subscriber_.stop();
+    wsSubscriber_.stop();
+    usingWebSocket_ = false;
 }
 
 CollectionIntervalAction& XmrManager::collectionInterval()
@@ -107,6 +229,26 @@ PurgeAllAction& XmrManager::purgeAll()
 XmrStatus XmrManager::status()
 {
     return info_;
+}
+
+void XmrManager::processWebSocketMessage(const std::string& message)
+{
+    if (message == HearbeatChannel)
+    {
+        info_.lastHeartbeatDt = DateTime::now();
+        return;
+    }
+
+    try
+    {
+        auto xmrMessage = parseMessage(message);
+        processXmrMessage(xmrMessage);
+        info_.lastMessageDt = DateTime::now();
+    }
+    catch (std::exception& e)
+    {
+        Log::error("[XMR::WS] {}", e.what());
+    }
 }
 
 void XmrManager::processMultipartMessage(const Zmq::MultiPartMessage& multipart)

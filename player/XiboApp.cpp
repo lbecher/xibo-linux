@@ -321,7 +321,36 @@ std::unique_ptr<XmrManager> XiboApp::createXmrManager()
     auto xmrChannel = XmrChannel::fromCmsSettings(cmsSettings_.address(), cmsSettings_.key(), cmsSettings_.displayId());
     auto manager = std::make_unique<XmrManager>(xmrChannel);
 
-    playerSettings_.xmrNetworkAddress().valueChanged().connect(std::bind(&XmrManager::connect, manager.get(), ph::_1));
+    auto applyXmrConfiguration = [this, managerPtr = manager.get()]() {
+        auto xmrCmsKey = playerSettings_.xmrCmsKey().value();
+        if (xmrCmsKey.empty())
+        {
+            xmrCmsKey = cmsSettings_.key().value();
+        }
+
+        Log::info("[XMR] Applying config: type='{}' network='{}' ws='{}' cmsKeyPresent={}",
+                  playerSettings_.xmrType().value(),
+                  playerSettings_.xmrNetworkAddress().value(),
+                  playerSettings_.xmrWebSocketAddress().value(),
+                  !xmrCmsKey.empty());
+
+        managerPtr->connect(playerSettings_.xmrNetworkAddress().value(),
+                            playerSettings_.xmrType().value(),
+                            playerSettings_.xmrWebSocketAddress().value(),
+                            xmrCmsKey,
+                            cmsSettings_.address().value());
+    };
+
+    playerSettings_.xmrNetworkAddress().valueChanged().connect([applyXmrConfiguration](const std::string&) {
+        applyXmrConfiguration();
+    });
+    playerSettings_.xmrType().valueChanged().connect([applyXmrConfiguration](const std::string&) { applyXmrConfiguration(); });
+    playerSettings_.xmrWebSocketAddress().valueChanged().connect(
+        [applyXmrConfiguration](const std::string&) { applyXmrConfiguration(); });
+    playerSettings_.xmrCmsKey().valueChanged().connect([applyXmrConfiguration](const std::string&) { applyXmrConfiguration(); });
+
+    // Ensure startup configuration is applied even if settings were loaded before signal connections were made.
+    applyXmrConfiguration();
 
     manager->collectionInterval().connect([this]() {
         CHECK_UI_THREAD();
@@ -642,7 +671,12 @@ std::unique_ptr<CollectionInterval> XiboApp::createCollectionInterval(XmdsReques
     });
     interval->settingsUpdated().connect([this](const PlayerSettings& settings) {
         CHECK_UI_THREAD();
-        Log::info("[XiboApp] Collection updated player settings from CMS");
+        Log::info("[XiboApp] Collection updated player settings from CMS: xmrType='{}', xmrNetworkAddress='{}', "
+                  "xmrWebSocketAddress='{}', xmrCmsKeyPresent={}",
+                  settings.xmrType().value(),
+                  settings.xmrNetworkAddress().value(),
+                  settings.xmrWebSocketAddress().value(),
+                  !settings.xmrCmsKey().value().empty());
         playerSettings_.fromFields(settings);
         playerSettings_.saveTo(AppConfig::playerSettingsPath());
     });
