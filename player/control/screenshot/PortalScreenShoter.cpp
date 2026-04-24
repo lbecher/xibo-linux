@@ -5,6 +5,7 @@
 #include <dbus/dbus.h>
 
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -18,6 +19,7 @@ namespace
     constexpr const char* RequestInterface = "org.freedesktop.portal.Request";
     constexpr const char* ResponseMember = "Response";
     constexpr const int PortalTimeoutMs = 300000;
+    constexpr const char* InteractiveEnvVar = "XIBO_SCREENSHOT_PORTAL_INTERACTIVE";
 
     bool appendOption(DBusMessageIter& options, const char* key, const char* signature, const void* value)
     {
@@ -44,6 +46,62 @@ namespace
         };
 
         return static_cast<unsigned char>((valueOf(high) << 4) | valueOf(low));
+    }
+
+    bool envVarEnabled(const char* name)
+    {
+        auto* value = std::getenv(name);
+        if (!value) return false;
+
+        std::string normalized{value};
+        std::transform(normalized.begin(), normalized.end(), normalized.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+
+        return normalized == "1" || normalized == "true" || normalized == "yes" || normalized == "on";
+    }
+
+    std::string portalResponseMeaning(uint32_t response)
+    {
+        switch (response)
+        {
+            case 0:
+                return "success";
+            case 1:
+                return "cancelled";
+            case 2:
+                return "denied";
+            default:
+                return "unknown";
+        }
+    }
+
+    std::string resultKeysSummary(DBusMessageIter& results)
+    {
+        std::ostringstream summary;
+        bool first = true;
+
+        while (dbus_message_iter_get_arg_type(&results) == DBUS_TYPE_DICT_ENTRY)
+        {
+            DBusMessageIter entry;
+            const char* key = nullptr;
+
+            dbus_message_iter_recurse(&results, &entry);
+            if (dbus_message_iter_get_arg_type(&entry) == DBUS_TYPE_STRING)
+            {
+                dbus_message_iter_get_basic(&entry, &key);
+                if (key)
+                {
+                    if (!first) summary << ",";
+                    summary << key;
+                    first = false;
+                }
+            }
+
+            dbus_message_iter_next(&results);
+        }
+
+        return summary.str();
     }
 }
 
@@ -112,7 +170,10 @@ DBusMessage* PortalScreenShoter::createScreenshotRequest()
     DBusMessageIter args;
     DBusMessageIter options;
     const char* parentWindow = "";
-    dbus_bool_t interactive = false;
+    dbus_bool_t interactive = envVarEnabled(InteractiveEnvVar);
+
+    Log::info("[PortalScreenShoter] Requesting screenshot via portal (interactive={}, parent_window=<empty>)",
+              interactive ? "true" : "false");
 
     dbus_message_iter_init_append(message, &args);
     if (!dbus_message_iter_append_basic(&args, DBUS_TYPE_STRING, &parentWindow))
@@ -204,7 +265,10 @@ std::string PortalScreenShoter::uriFromResponse(DBusMessage* message)
     dbus_message_iter_get_basic(&args, &response);
     if (response != 0)
     {
-        throw PlayerRuntimeError{"PortalScreenShoter", "Screenshot was cancelled or denied"};
+        std::ostringstream error;
+        error << "Portal response=" << response << " (" << portalResponseMeaning(response)
+              << "). Set " << InteractiveEnvVar << "=1 to test whether the desktop requires user interaction";
+        throw PlayerRuntimeError{"PortalScreenShoter", error.str()};
     }
 
     if (!dbus_message_iter_next(&args) || dbus_message_iter_get_arg_type(&args) != DBUS_TYPE_ARRAY)
@@ -213,6 +277,9 @@ std::string PortalScreenShoter::uriFromResponse(DBusMessage* message)
     }
 
     dbus_message_iter_recurse(&args, &results);
+    auto summaryIter = results;
+    Log::debug("[PortalScreenShoter] Portal response keys: [{}]", resultKeysSummary(summaryIter));
+
     while (dbus_message_iter_get_arg_type(&results) == DBUS_TYPE_DICT_ENTRY)
     {
         DBusMessageIter entry;
