@@ -7,28 +7,38 @@
 #include "common/constants.hpp"
 #include "control/widgets/gtk/OutputWindowGtk.hpp"
 
+#include <gdkmm/paintable.h>
 #include <gst/gst.h>
+#include <gtkmm/picture.h>
 
 GstMediaPlayer::GstMediaPlayer(const MediaPlayerOptions& options) :
     playbin_(gst_element_factory_make("playbin", "playbin")),
-    videoSink_(gst_element_factory_make("gtkglsink", "gtksink")),
-    glSinkBin_(gst_element_factory_make("glsinkbin", "glsinkbin")),
+    videoSink_(gst_element_factory_make("gtk4paintablesink", "gtk4paintablesink")),
+    glSinkBin_(nullptr),
     options_(options)
 {
     if (!playbin_) throw Error{"GstMediaPlayer", "Unable to create player: playbin is missing."};
-    if (!videoSink_) throw Error{"GstMediaPlayer", "Unable to create player: gtkglsink is missing."};
-    if (!glSinkBin_) throw Error{"GstMediaPlayer", "Unable to create player: glsinkbin is missing."};
-
-    g_object_set(glSinkBin_, "sink", videoSink_, nullptr);
-    g_object_set(playbin_, "video-sink", glSinkBin_, nullptr);
-
-    GtkWidget* videoSinkWidget = nullptr;
-    g_object_get(videoSink_, "widget", &videoSinkWidget, nullptr);  // transfer ownership here, ref_count == 2
-    if (videoSinkWidget)
+    if (!videoSink_)
     {
-        // take ownership and unref widget from sink
-        outputWindow_ = std::make_shared<OutputWindowGtk>(Glib::wrap(videoSinkWidget));
-        g_object_unref(videoSinkWidget);
+        throw Error{"GstMediaPlayer",
+                    "Unable to create player: gtk4paintablesink is missing. Install the GStreamer GTK4 sink plugin."};
+    }
+
+    g_object_set(playbin_, "video-sink", videoSink_, nullptr);
+
+    GdkPaintable* paintable = nullptr;
+    g_object_get(videoSink_, "paintable", &paintable, nullptr);
+    if (paintable)
+    {
+        auto picture = std::make_unique<Gtk::Picture>(Glib::wrap(paintable, false));
+        picture->set_can_shrink(true);
+        picture->set_hexpand(true);
+        picture->set_vexpand(true);
+        outputWindow_ = std::make_shared<OutputWindowGtk>(std::move(picture));
+    }
+    else
+    {
+        throw Error{"GstMediaPlayer", "Unable to create player output: gtk4paintablesink did not provide a paintable"};
     }
 
     auto bus = gst_element_get_bus(playbin_);
