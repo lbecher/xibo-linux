@@ -87,7 +87,13 @@ void RegionParser::addMedia(Xibo::Region& region, const XmlNode& regionNode)
     {
         if (nodeName != XlfResources::MediaNode) continue;
 
-        auto parser = MediaParsersRepo::get(mediaTypeFrom(node));
+        auto mediaType = mediaTypeFrom(node);
+        Log::info("[RegionParser] Media node id={} type={} render={}",
+                  node.get<int>(XlfResources::Media::Id, -1),
+                  mediaType.type,
+                  mediaType.render);
+
+        auto parser = MediaParsersRepo::get(mediaType);
         if (parser)
         {
             // TODO: don't use width/height if media type is widget-less

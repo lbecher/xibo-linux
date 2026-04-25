@@ -30,6 +30,6 @@ Rules-Requires-Root: no
 
 Package: xibo-player
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, gstreamer1.0-gtk4
+Depends: ${shlibs:Depends}, ${misc:Depends}, gstreamer1.0-gtk4, gstreamer1.0-vaapi
 Description: Xibo Player for Linux
  Xibo digital signage player for Linux.

@@ -113,6 +113,7 @@ native_packages=(
     libdbus-1-dev
     libgstreamer1.0-dev
     libgstreamer-plugins-base1.0-dev
+    gstreamer1.0-vaapi
     gstreamer1.0-gtk4
     libboost-dev
     libboost-system-dev

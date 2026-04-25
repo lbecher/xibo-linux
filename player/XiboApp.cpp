@@ -194,10 +194,14 @@ XiboApp::XiboApp(const std::string& name) :
     if (!FileSystem::exists(AppConfig::cmsSettingsPath()))
         throw PlayerRuntimeError{"XiboApp", "Update CMS settings using player options app"};
 
+    Log::info("[XiboApp] Startup stage: connecting log level signal");
     playerSettings_.logLevel().valueChanged().connect([](const std::string& logLevel) { Log::setLevel(logLevel); });
 
+    Log::info("[XiboApp] Startup stage: loading CMS settings from {}", AppConfig::cmsSettingsPath().string());
     cmsSettings_.fromFile(AppConfig::cmsSettingsPath());
+    Log::info("[XiboApp] Startup stage: loading player settings from {}", AppConfig::playerSettingsPath().string());
     playerSettings_.fromFile(AppConfig::playerSettingsPath());
+    Log::info("[XiboApp] Startup stage: loading cache from {}", AppConfig::cachePath().string());
     fileCache_->loadFrom(AppConfig::cachePath());
     Log::info("[XiboApp] Startup stage: settings and cache loaded");
 
@@ -299,9 +303,12 @@ XiboApp::XiboApp(const std::string& name) :
               playerSettings_.embeddedServerPort().value());
 
     HttpClient::instance().setProxyServer(cmsSettings_.proxy());
+    Log::info("[XiboApp] Startup stage: loading RSA manager");
     RsaManager::instance().load();
+    Log::info("[XiboApp] Startup stage: creating XMR manager");
     xmrManager_ = createXmrManager();
 
+    Log::info("[XiboApp] Startup stage: initializing media parsers");
     MediaParsersRepo::init();
     Log::info("[XiboApp] Startup stage: XMR and media parsers initialized");
 

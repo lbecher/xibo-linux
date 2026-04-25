@@ -5,6 +5,8 @@
 #include "control/media/player/MediaPlayerOptions.hpp"
 
 #include <functional>
+#include <string>
+#include <vector>
 #include <gst/gstelement.h>
 
 namespace ph = std::placeholders;
@@ -35,6 +37,15 @@ public:
 private:
     static gboolean busMessageWatch(GstBus* bus, GstMessage* msg, gpointer player);
     void check(int volume);
+    GstElement* createVideoSink();
+    GstElement* tryCreateGtkPaintableSink();
+    GstElement* tryCreateGlSinkBin();
+    void createOutputWindow();
+    void logRuntimeCapabilities() const;
+    bool hasElementFactory(const char* factoryName) const;
+    void logSelectedPipeline();
+    std::vector<std::string> collectElementFactories() const;
+    static bool hasNameFragment(const std::string& value, const std::vector<std::string>& fragments);
 
 protected:
     GstElement* playbin_;
@@ -45,4 +56,5 @@ protected:
 
     std::shared_ptr<Xibo::OutputWindow> outputWindow_;
     SignalPlaybackFinished playbackFinished_;
+    bool pipelineLogged_;
 };
