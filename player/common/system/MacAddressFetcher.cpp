@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 const std::size_t ConfigBufferSize = 1024;
 const std::size_t MacAddressBuffer = 100;
@@ -14,15 +15,23 @@ const int InvalidSocket = -1;
 
 MacAddress MacAddressFetcher::fetch()
 {
+    return fetch(std::string{});
+}
+
+MacAddress MacAddressFetcher::fetch(const std::string& interfaceName)
+{
     try
     {
         char buffer[ConfigBufferSize];
 
         auto socket = openSocket();
         auto interfaceConfig = getInterfaceConfig(socket, buffer);
-        auto interfaceRequest = findInterface(socket, interfaceConfig);
+        auto interfaceRequest =
+            interfaceName.empty() ? findInterface(socket, interfaceConfig) : findInterface(socket, interfaceConfig, interfaceName);
+        auto macAddress = MacAddress{retrieveMacAddress(socket, interfaceRequest)};
 
-        return MacAddress{retrieveMacAddress(socket, interfaceRequest)};
+        close(socket);
+        return macAddress;
     }
     catch (std::exception& e)
     {
@@ -74,6 +83,32 @@ ifreq MacAddressFetcher::findInterface(SocketDescriptor socket, ifconf& interfac
     }
 
     throw MacAddressFetcher::Error{"MAC", "Interface Request was not found"};
+}
+
+ifreq MacAddressFetcher::findInterface(SocketDescriptor socket, ifconf& interfaceConfig, const std::string& interfaceName)
+{
+    const std::size_t configSize = static_cast<std::size_t>(interfaceConfig.ifc_len) / sizeof(ifreq);
+
+    ifreq* it = interfaceConfig.ifc_req;
+    const ifreq* const end = it + configSize;
+
+    for (; it != end; ++it)
+    {
+        if (interfaceName != it->ifr_name)
+        {
+            continue;
+        }
+
+        auto flags = retrieveFlags(socket, *it);
+        if (isNotLoopback(flags))
+        {
+            ifreq interfaceRequest;
+            std::strcpy(interfaceRequest.ifr_name, it->ifr_name);
+            return interfaceRequest;
+        }
+    }
+
+    throw MacAddressFetcher::Error{"MAC", "Selected interface was not found"};
 }
 
 std::string MacAddressFetcher::retrieveMacAddress(SocketDescriptor socket, ifreq& interfaceRequest)

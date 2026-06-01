@@ -145,6 +145,23 @@
             <child>
               <object class="GtkBox">
                 <property name="spacing">12</property>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="label">Network Interface</property>
+                    <property name="width-chars">16</property>
+                    <property name="halign">end</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="networkInterfaceCombo">
+                    <property name="hexpand">true</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="spacing">12</property>
                 <property name="visible">false</property>
                 <child>
                   <object class="GtkLabel">

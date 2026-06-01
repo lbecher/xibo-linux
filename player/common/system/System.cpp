@@ -7,17 +7,50 @@
 #include <limits.h>
 #include <signal.h>
 #include <array>
+#include <boost/optional.hpp>
+
+namespace
+{
+std::string g_networkInterface;
+boost::optional<MacAddress> g_macAddress;
+boost::optional<HardwareKey> g_hardwareKey;
+}
 
 MacAddress System::macAddress()
 {
-    static MacAddress address{MacAddressFetcher::fetch()};
-    return address;
+    if (!g_macAddress)
+    {
+        g_macAddress = MacAddressFetcher::fetch(g_networkInterface);
+    }
+
+    return *g_macAddress;
 }
 
 HardwareKey System::hardwareKey()
 {
-    static auto key{HardwareKeyGenerator::generate()};
-    return key;
+    if (!g_hardwareKey)
+    {
+        g_hardwareKey = HardwareKeyGenerator::generate();
+    }
+
+    return *g_hardwareKey;
+}
+
+void System::networkInterface(const std::string& interfaceName)
+{
+    if (g_networkInterface == interfaceName)
+    {
+        return;
+    }
+
+    g_networkInterface = interfaceName;
+    g_macAddress = boost::none;
+    g_hardwareKey = boost::none;
+}
+
+std::string System::networkInterface()
+{
+    return g_networkInterface;
 }
 
 void System::preventSleep()

@@ -69,6 +69,7 @@ private:
     std::string lastFaultKey_;
     int lastFaultTtl_ = 0;
     std::string lastFaultReason_;
+    bool networkOnlineAtStartup_ = true;
 
     std::unique_ptr<MainLoop> mainLoop_;
     std::unique_ptr<FileCache> fileCache_;

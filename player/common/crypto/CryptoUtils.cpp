@@ -82,6 +82,7 @@ std::string CryptoUtils::fromBase64(const std::string& text)
 {
     std::string decoded;
     decoded.resize(boost::beast::detail::base64::decoded_size(text.size()));
-    boost::beast::detail::base64::decode(&decoded[0], text.data(), text.size());
+    auto decodedResult = boost::beast::detail::base64::decode(&decoded[0], text.data(), text.size());
+    decoded.resize(decodedResult.first);
     return decoded;
 }

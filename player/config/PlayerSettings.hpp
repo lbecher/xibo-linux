@@ -81,6 +81,9 @@ public:
     Field<std::string>& displayName();
     const Field<std::string>& displayName() const;
 
+    Field<std::string>& networkInterface();
+    const Field<std::string>& networkInterface() const;
+
     SizeField& size();
     const SizeField& size() const;
 
@@ -101,6 +104,7 @@ private:
                                                    9696};   // FIXME should listen to value changed and do reconfig
     NamedField<bool> preventSleep_{"preventSleep", false};  // FIXME should listen to value changed and do reconfig
     NamedField<std::string> displayName_{"displayName", "Display"};    // FIXME should listen to value
+    NamedField<std::string> networkInterface_{"networkInterface"};
     SizeField size_{{"sizeX", 0}, {"sizeY", 0}};
     PositionField position_{{"offsetX", 0}, {"offfsetY", 0}};
 };

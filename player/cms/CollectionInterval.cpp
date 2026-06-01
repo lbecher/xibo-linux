@@ -128,13 +128,20 @@ void CollectionInterval::onDisplayRegistered(const ResponseResult<RegisterDispla
             auto requiredFilesResult = xmdsSender_.requiredFiles().get();
             auto scheduleResult = xmdsSender_.schedule().get();
 
-            Log::info("[CollectionInterval] Stage start: schedule");
-            onSchedule(scheduleResult);
-            Log::info("[CollectionInterval] Stage complete: schedule");
-
             Log::info("[CollectionInterval] Stage start: requiredFiles");
-            onRequiredFiles(requiredFilesResult);
+            auto requiredFilesReady = onRequiredFiles(requiredFilesResult);
             Log::info("[CollectionInterval] Stage complete: requiredFiles");
+
+            if (requiredFilesReady)
+            {
+                Log::info("[CollectionInterval] Stage start: schedule");
+                onSchedule(scheduleResult);
+                Log::info("[CollectionInterval] Stage complete: schedule");
+            }
+            else
+            {
+                Log::error("[CollectionInterval] Schedule update skipped because required files are not ready");
+            }
 
             Log::info("[CollectionInterval] Stage start: submitLogs");
             submitLogs();
@@ -209,7 +216,7 @@ SignalFilesDownloaded& CollectionInterval::filesDownloaded()
     return filesDownloaded_;
 }
 
-void CollectionInterval::onRequiredFiles(const ResponseResult<RequiredFiles::Result>& requiredFiles)
+bool CollectionInterval::onRequiredFiles(const ResponseResult<RequiredFiles::Result>& requiredFiles)
 {
     auto [error, result] = requiredFiles;
     if (!error)
@@ -246,10 +253,12 @@ void CollectionInterval::onRequiredFiles(const ResponseResult<RequiredFiles::Res
         Log::info("[CollectionInterval] Media inventory updated after downloads");
 
         MainLoop::pushToUiThread([this]() { filesDownloaded_(); });
+        return downloadedFiles == fileDownloads.size() && downloadedResources == resourceDownloads.size();
     }
     else
     {
         sessionFinished(error);
+        return false;
     }
 }
 

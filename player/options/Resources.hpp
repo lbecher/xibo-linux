@@ -18,6 +18,7 @@ namespace Resources
         const std::string BrowseSplashScreenButton = "browseSplashScreenBtn";
         const std::string DomainEntry = "domainEntry";
         const std::string DisplayIdEntry = "displayIdEntry";
+        const std::string NetworkInterfaceCombo = "networkInterfaceCombo";
         const std::string ConnectionStatusLabel = "statusLabel";
         const std::string SaveButton = "saveBtn";
         const std::string LaunchClientButton = "launchClientBtn";

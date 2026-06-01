@@ -189,6 +189,16 @@ const Field<std::string>& PlayerSettings::displayName() const
     return displayName_;
 }
 
+Field<std::string>& PlayerSettings::networkInterface()
+{
+    return networkInterface_;
+}
+
+const Field<std::string>& PlayerSettings::networkInterface() const
+{
+    return networkInterface_;
+}
+
 PlayerSettings::SizeField& PlayerSettings::size()
 {
     return size_;

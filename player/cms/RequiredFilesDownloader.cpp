@@ -33,8 +33,9 @@ bool RequiredFilesDownloader::onRegularFileDownloaded(const ResponseContentResul
         
         fileCache_.save(file.name(), fileContent, file.hash());
 
-        Log::debug("[{}] Downloaded", file.name());
-        return true;
+        auto downloaded = fileCache_.cached(file);
+        Log::debug("[{}] Downloaded valid={}", file.name(), downloaded);
+        return downloaded;
     }
     else
     {

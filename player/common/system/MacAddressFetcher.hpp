@@ -18,11 +18,13 @@ public:
     };
 
     static MacAddress fetch();
+    static MacAddress fetch(const std::string& interfaceName);
 
 private:
     static SocketDescriptor openSocket();
     static ifconf getInterfaceConfig(SocketDescriptor socket, char* buffer);
     static ifreq findInterface(SocketDescriptor socket, ifconf& config);
+    static ifreq findInterface(SocketDescriptor socket, ifconf& config, const std::string& interfaceName);
 
     static std::string retrieveMacAddress(SocketDescriptor socket, ifreq& interfaceRequest);
     static InterfaceFlags retrieveFlags(SocketDescriptor socket, ifreq& interfaceRequest);

@@ -4,6 +4,7 @@
 #include <gtkmm/window.h>
 
 #include <gtkmm/button.h>
+#include <gtkmm/comboboxtext.h>
 #include <gtkmm/entry.h>
 #include <gtkmm/label.h>
 
@@ -18,11 +19,12 @@ public:
 
 private:
     void initUi();
-    void updateControls(const CmsSettings& settings);
+    void updateControls(const CmsSettings& cmsSettings, const PlayerSettings& playerSettings);
+    void initNetworkInterfaces(const std::string& selectedInterface);
     void connectSignals();
 
     void onSaveSettingsClicked();
-    std::string getDisplayId();
+    std::string getDisplayId(const std::string& previousAutoDisplayId, bool networkInterfaceChanged);
     std::string connectToCms(const std::string& cmsAddress, const std::string& key, const std::string& displayId);
     void updateSettings();
     void showSettingsSavedMessage();
@@ -46,6 +48,7 @@ private:
     Gtk::Button* browseSplashScreenPath_;
     Gtk::Entry* domainField_;
     Gtk::Entry* displayIdField_;
+    Gtk::ComboBoxText* networkInterfaceField_;
 
     Gtk::Label* connectionStatus_;
     Gtk::Button* saveSettings_;

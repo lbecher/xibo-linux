@@ -16,7 +16,8 @@ void PlayerSettingsSerializer::loadSettingsFrom(const FilePath& file, PlayerSett
                  settings.xmrCmsKey_,
                  settings.enableShellCommands_,
                  settings.embeddedServerPort_,
-                 settings.screenshotInterval_);
+                 settings.screenshotInterval_,
+                 settings.networkInterface_);
 }
 
 void PlayerSettingsSerializer::saveSettingsTo(const FilePath& file, const PlayerSettings& settings)
@@ -34,7 +35,8 @@ void PlayerSettingsSerializer::saveSettingsTo(const FilePath& file, const Player
                            settings.xmrCmsKey_,
                            settings.enableShellCommands_,
                            settings.embeddedServerPort_,
-                           settings.screenshotInterval_);
+                           settings.screenshotInterval_,
+                           settings.networkInterface_);
     saveXmlTo(file, tree);
 }
 

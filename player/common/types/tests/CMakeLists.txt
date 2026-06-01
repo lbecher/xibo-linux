@@ -8,11 +8,13 @@ find_library(GMOCK NAMES gmock)
 add_executable(${PROJECT_NAME}
     ColorConverterTests.cpp
     ColorConverterTests.hpp
+    CryptoUtilsTests.cpp
     main.cpp
     UriTests.cpp
     UriTests.hpp
 )
 target_link_libraries(${PROJECT_NAME}
+    crypto
     types
     ${GMOCK}
     GTest::GTest

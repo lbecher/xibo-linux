@@ -375,12 +375,41 @@ std::vector<std::string> FileCacheImpl::invalidFiles() const
 
 void FileCacheImpl::save(const std::string& fileName, const std::string& fileContent, const Md5Hash& hash)
 {
+    auto downloadedHash = Md5Hash::fromString(fileContent);
+    if (downloadedHash != hash)
+    {
+        Log::error("[FileCache] HASH MISMATCH for {}: calculated='{}' expected='{}' KEEPING EXISTING CACHE",
+                   fileName,
+                   static_cast<std::string>(downloadedHash),
+                   static_cast<std::string>(hash));
+
+        boost::mutex::scoped_lock lock(fileCacheMutex_);
+        if (auto node = findFileNode(fileCache_, fileName))
+        {
+            Resource path{fileName};
+            if (FileSystem::exists(path))
+            {
+                node->put(ValidAttr, true);
+                saveFileHashes(cacheFile_);
+            }
+        }
+        else
+        {
+            XmlNode newNode;
+            newNode.put(NameAttr, fileName);
+            newNode.put(Md5Attr, downloadedHash);
+            newNode.put(ValidAttr, false);
+            upsertFileNode(fileCache_, fileName, std::move(newNode));
+            saveFileHashes(cacheFile_);
+        }
+        return;
+    }
+
     Resource path{fileName};
 
     FileSystem::writeToFile(path, fileContent);
 
-    auto savedHash = Md5Hash::fromFile(path);
-    addToCache(fileName, savedHash, hash);
+    addToCache(fileName, downloadedHash, hash);
 }
 
 void FileCacheImpl::save(const std::string& fileName, const std::string& fileContent, const DateTime& lastUpdate)

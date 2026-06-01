@@ -6,6 +6,7 @@
 #include "cms/xmds/XmdsRequestSender.hpp"
 #include "common/fs/FileSystem.hpp"
 #include "common/logger/Logging.hpp"
+#include "common/system/NetworkInterface.hpp"
 #include "common/system/System.hpp"
 #include "config/AppConfig.hpp"
 
@@ -15,9 +16,10 @@ MainWindowController::MainWindowController(Gtk::Window* window, const Glib::RefP
 {
     cmsSettings_.fromFile(AppConfig::cmsSettingsPath());
     playerSettings_.fromFile(AppConfig::playerSettingsPath());
+    System::networkInterface(playerSettings_.networkInterface().value());
 
     initUi();
-    updateControls(cmsSettings_);
+    updateControls(cmsSettings_, playerSettings_);
     connectSignals();
 }
 
@@ -34,13 +36,16 @@ void MainWindowController::initUi()
     browseSplashScreenPath_ = ui_->get_widget<Gtk::Button>(Resources::Ui::BrowseSplashScreenButton);
     domainField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::DomainEntry);
     displayIdField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::DisplayIdEntry);
+    networkInterfaceField_ = ui_->get_widget<Gtk::ComboBoxText>(Resources::Ui::NetworkInterfaceCombo);
 
     connectionStatus_ = ui_->get_widget<Gtk::Label>(Resources::Ui::ConnectionStatusLabel);
     saveSettings_ = ui_->get_widget<Gtk::Button>(Resources::Ui::SaveButton);
     exit_ = ui_->get_widget<Gtk::Button>(Resources::Ui::ExitButton);
+
+    initNetworkInterfaces(playerSettings_.networkInterface().value());
 }
 
-void MainWindowController::updateControls(const CmsSettings& settings)
+void MainWindowController::updateControls(const CmsSettings& settings, const PlayerSettings& playerSettings)
 {
     cmsAddressField_->set_text(Glib::ustring{settings.address()});
     keyField_->set_text(Glib::ustring{settings.key()});
@@ -50,6 +55,23 @@ void MainWindowController::updateControls(const CmsSettings& settings)
     passwordField_->set_text(Glib::ustring{settings.password()});
     domainField_->set_text(Glib::ustring{settings.domain()});
     displayIdField_->set_text(Glib::ustring{settings.displayId()});
+    networkInterfaceField_->set_active_text(playerSettings.networkInterface().value());
+}
+
+void MainWindowController::initNetworkInterfaces(const std::string& selectedInterface)
+{
+    networkInterfaceField_->append("");
+    bool selectedInterfaceFound = selectedInterface.empty();
+    for (const auto& name : NetworkInterface::availableNames())
+    {
+        networkInterfaceField_->append(name);
+        selectedInterfaceFound = selectedInterfaceFound || name == selectedInterface;
+    }
+
+    if (!selectedInterfaceFound)
+    {
+        networkInterfaceField_->append(selectedInterface);
+    }
 }
 
 void MainWindowController::connectSignals()
@@ -62,7 +84,14 @@ void MainWindowController::connectSignals()
 
 void MainWindowController::onSaveSettingsClicked()
 {
-    auto displayId = getDisplayId();
+    auto previousAutoDisplayId = static_cast<std::string>(static_cast<Md5Hash>(System::hardwareKey()));
+    auto selectedNetworkInterface = std::string{networkInterfaceField_->get_active_text()};
+    bool networkInterfaceChanged = selectedNetworkInterface != playerSettings_.networkInterface().value();
+
+    playerSettings_.networkInterface().setValue(selectedNetworkInterface);
+    System::networkInterface(selectedNetworkInterface);
+
+    auto displayId = getDisplayId(previousAutoDisplayId, networkInterfaceChanged);
     auto connectionResult = connectToCms(cmsAddressField_->get_text(), keyField_->get_text(), displayId);
 
     connectionStatus_->set_text(connectionResult);
@@ -71,12 +100,17 @@ void MainWindowController::onSaveSettingsClicked()
     updateSettings();
 }
 
-std::string MainWindowController::getDisplayId()
+std::string MainWindowController::getDisplayId(const std::string& previousAutoDisplayId, bool networkInterfaceChanged)
 {
     std::string displayId = displayIdField_->get_text();
     auto keyHash = static_cast<Md5Hash>(System::hardwareKey());
 
-    return displayId.empty() ? static_cast<std::string>(keyHash) : displayId;
+    if (displayId.empty() || (networkInterfaceChanged && displayId == previousAutoDisplayId))
+    {
+        return static_cast<std::string>(keyHash);
+    }
+
+    return displayId;
 }
 
 std::string MainWindowController::connectToCms(const std::string& cmsAddress,
@@ -119,6 +153,9 @@ void MainWindowController::updateSettings()
     cmsSettings_.updateProxy(domainField_->get_text(), usernameField_->get_text(), passwordField_->get_text());
 
     cmsSettings_.saveTo(AppConfig::cmsSettingsPath());
+
+    playerSettings_.networkInterface().setValue(networkInterfaceField_->get_active_text());
+    playerSettings_.saveTo(AppConfig::playerSettingsPath());
 }
 
 std::string MainWindowController::createDefaultResourceDir()

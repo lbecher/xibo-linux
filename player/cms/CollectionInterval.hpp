@@ -61,7 +61,7 @@ private:
 
     void onDisplayRegistered(const ResponseResult<RegisterDisplay::Result>& registerDisplay);
     PlayerError displayStatus(const RegisterDisplay::Result::Status& status);
-    void onRequiredFiles(const ResponseResult<RequiredFiles::Result>& requiredFiles);
+    bool onRequiredFiles(const ResponseResult<RequiredFiles::Result>& requiredFiles);
     void updateMediaInventory(const RequiredFiles::Result& requiredFilesResult);
     void onSchedule(const ResponseResult<Schedule::Result>& schedule);
     void submitLogs();

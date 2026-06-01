@@ -28,6 +28,7 @@
 #include "common/logger/Logging.hpp"
 #include "common/parsing/Parsing.hpp"
 #include "common/storage/FileCacheImpl.hpp"
+#include "common/system/NetworkInterface.hpp"
 #include "common/system/System.hpp"
 
 #include <algorithm>
@@ -168,6 +169,52 @@ bool parseCommandPayload(const std::string& triggerCode, std::string& commandPay
 
     return false;
 }
+
+bool prepareConfiguredNetworkInterface(const std::string& interfaceName)
+{
+    constexpr int NetworkIpWaitTimeoutSeconds = 120;
+
+    if (interfaceName.empty())
+    {
+        return true;
+    }
+
+    System::networkInterface(interfaceName);
+
+    auto current = NetworkInterface::status(interfaceName);
+    if (!current.exists)
+    {
+        Log::error("[NetworkInterface] Selected interface '{}' was not found. Starting with cached content only.",
+                   interfaceName);
+        return false;
+    }
+
+    if (!current.up)
+    {
+        Log::error("[NetworkInterface] Selected interface '{}' is down. Starting with cached content only.",
+                   interfaceName);
+        return false;
+    }
+
+    if (current.hasIpAddress)
+    {
+        Log::info("[NetworkInterface] Selected interface '{}' is up and has an IP address.", interfaceName);
+        return true;
+    }
+
+    Log::info("[NetworkInterface] Selected interface '{}' is up without an IP address. Waiting up to {} seconds.",
+              interfaceName,
+              NetworkIpWaitTimeoutSeconds);
+    if (NetworkInterface::waitForIpAddress(interfaceName, NetworkIpWaitTimeoutSeconds))
+    {
+        Log::info("[NetworkInterface] Selected interface '{}' obtained an IP address.", interfaceName);
+        return true;
+    }
+
+    Log::error("[NetworkInterface] Selected interface '{}' did not obtain an IP address. Starting with cached content only.",
+               interfaceName);
+    return false;
+}
 } // namespace
 
 XiboApp& xiboApp()
@@ -201,6 +248,7 @@ XiboApp::XiboApp(const std::string& name) :
     cmsSettings_.fromFile(AppConfig::cmsSettingsPath());
     Log::info("[XiboApp] Startup stage: loading player settings from {}", AppConfig::playerSettingsPath().string());
     playerSettings_.fromFile(AppConfig::playerSettingsPath());
+    networkOnlineAtStartup_ = prepareConfiguredNetworkInterface(playerSettings_.networkInterface().value());
     Log::info("[XiboApp] Startup stage: loading cache from {}", AppConfig::cachePath().string());
     fileCache_->loadFrom(AppConfig::cachePath());
     Log::info("[XiboApp] Startup stage: settings and cache loaded");
@@ -329,6 +377,12 @@ std::unique_ptr<XmrManager> XiboApp::createXmrManager()
     auto manager = std::make_unique<XmrManager>(xmrChannel);
 
     auto applyXmrConfiguration = [this, managerPtr = manager.get()]() {
+        if (!networkOnlineAtStartup_)
+        {
+            Log::info("[XMR] Startup network is offline; XMR connection deferred for cached playback.");
+            return;
+        }
+
         auto xmrCmsKey = playerSettings_.xmrCmsKey().value();
         if (xmrCmsKey.empty())
         {
@@ -533,8 +587,15 @@ int XiboApp::run()
         });
 
     mainLoop_->started().connect([this] {
-        Log::info("[XiboApp] Main loop started: triggering initial collection");
-        collectionInterval_->collectNow();
+        if (networkOnlineAtStartup_)
+        {
+            Log::info("[XiboApp] Main loop started: triggering initial collection");
+            collectionInterval_->collectNow();
+        }
+        else
+        {
+            Log::info("[XiboApp] Main loop started: initial collection skipped for cached playback");
+        }
         mainWindow_->showAll();
     });
 
