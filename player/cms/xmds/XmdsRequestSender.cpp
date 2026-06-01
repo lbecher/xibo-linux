@@ -110,6 +110,16 @@ FutureResponseResult<GetResource::Result> XmdsRequestSender::getResource(int lay
     return SoapRequestHelper::sendRequest<GetResource::Result>(uri_, request);
 }
 
+FutureResponseResult<GetData::Result> XmdsRequestSender::getData(int widgetId)
+{
+    GetData::Request request;
+    request.serverKey = serverKey_;
+    request.hardwareKey = hardwareKey_;
+    request.widgetId = widgetId;
+
+    return SoapRequestHelper::sendRequest<GetData::Result>(uri_, request);
+}
+
 FutureResponseResult<GetFile::Result> XmdsRequestSender::getFile(const std::string& fileId,
                                                                  const std::string& fileType,
                                                                  std::size_t chunkOffset,

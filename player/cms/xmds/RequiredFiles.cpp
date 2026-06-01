@@ -19,6 +19,11 @@ const RequiredFilesSet<ResourceFile>& RequiredFiles::Result::requiredResources()
     return m_requiredResources;
 }
 
+const RequiredFilesSet<WidgetDataFile>& RequiredFiles::Result::requiredWidgetData() const
+{
+    return m_requiredWidgetData;
+}
+
 void RequiredFiles::Result::addFile(RegularFile&& file)
 {
     m_requiredFiles.emplace_back(std::move(file));
@@ -27,6 +32,11 @@ void RequiredFiles::Result::addFile(RegularFile&& file)
 void RequiredFiles::Result::addResource(ResourceFile&& resource)
 {
     m_requiredResources.emplace_back(std::move(resource));
+}
+
+void RequiredFiles::Result::addWidgetData(WidgetDataFile&& widgetData)
+{
+    m_requiredWidgetData.emplace_back(std::move(widgetData));
 }
 
 Soap::RequestSerializer<RequiredFiles::Request>::RequestSerializer(const RequiredFiles::Request& request) :
@@ -65,6 +75,10 @@ RequiredFiles::Result Soap::ResponseParser<RequiredFiles::Result>::parseBody(con
         else if (isResource(fileType))
         {
             result.addResource(parseResourceFile(fileAttrs));
+        }
+        else if (isWidgetData(fileType))
+        {
+            result.addWidgetData(parseWidgetDataFile(fileAttrs));
         }
     }
 
@@ -126,6 +140,14 @@ ResourceFile Soap::ResponseParser<RequiredFiles::Result>::parseResourceFile(cons
     return ResourceFile{layoutId, regionId, mediaId, lastUpdate};
 }
 
+WidgetDataFile Soap::ResponseParser<RequiredFiles::Result>::parseWidgetDataFile(const XmlNode& attrs)
+{
+    auto widgetId = attrs.get<int>(Resources::WidgetDataFile::Id);
+    auto updateInterval = attrs.get<int>(Resources::WidgetDataFile::UpdateInterval, 0);
+
+    return WidgetDataFile{widgetId, updateInterval};
+}
+
 bool Soap::ResponseParser<RequiredFiles::Result>::isLayout(std::string_view type) const
 {
     return type == Resources::LayoutType;
@@ -144,6 +166,11 @@ bool Soap::ResponseParser<RequiredFiles::Result>::isDependency(std::string_view 
 bool Soap::ResponseParser<RequiredFiles::Result>::isResource(std::string_view type) const
 {
     return type == Resources::ResourceType;
+}
+
+bool Soap::ResponseParser<RequiredFiles::Result>::isWidgetData(std::string_view type) const
+{
+    return type == Resources::WidgetType;
 }
 
 RegularFile::DownloadType Soap::ResponseParser<RequiredFiles::Result>::toDownloadType(std::string_view type)

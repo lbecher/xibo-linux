@@ -45,6 +45,7 @@ public:
     bool running() const;
     void stop();
     void collectNow();
+    void updateWidgetData(int widgetId);
     void updateInterval(int collectInterval);
     CmsStatus status() const;
 

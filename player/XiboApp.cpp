@@ -517,7 +517,7 @@ std::unique_ptr<XmrManager> XiboApp::createXmrManager()
         Log::info("[XMR] dataUpdate received for widgetId={} sourceId={}", message.widgetId, message.sourceId);
         if (collectionInterval_)
         {
-            collectionInterval_->collectNow();
+            collectionInterval_->updateWidgetData(message.widgetId);
         }
         else
         {

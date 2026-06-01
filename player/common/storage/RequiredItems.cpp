@@ -29,6 +29,11 @@ std::ostream& operator<<(std::ostream& out, const ResourceFile& res)
     return out << "Layout ID: " << res.layoutId_ << " Region ID: " << res.regionId_ << " Media ID: " << res.mediaId_;
 }
 
+std::ostream& operator<<(std::ostream& out, const WidgetDataFile& widget)
+{
+    return out << "Widget ID: " << widget.widgetId_ << " Update interval: " << widget.updateInterval_;
+}
+
 size_t RegularFile::size() const
 {
     return size_;
@@ -131,4 +136,25 @@ DateTime ResourceFile::lastUpdate() const
 std::string ResourceFile::name() const
 {
     return std::to_string(mediaId_) + ".html";
+}
+
+WidgetDataFile::WidgetDataFile(int widgetId, int updateInterval) :
+    widgetId_{widgetId},
+    updateInterval_{updateInterval}
+{
+}
+
+int WidgetDataFile::widgetId() const
+{
+    return widgetId_;
+}
+
+int WidgetDataFile::updateInterval() const
+{
+    return updateInterval_;
+}
+
+std::string WidgetDataFile::name() const
+{
+    return std::to_string(widgetId_) + ".json";
 }

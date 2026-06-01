@@ -88,12 +88,15 @@ private:
 
     bool onRegularFileDownloaded(const ResponseContentResult& result, const RegularFile& file);
     bool onResourceFileDownloaded(const ResponseContentResult& result, const ResourceFile& file);
+    bool onWidgetDataDownloaded(const ResponseContentResult& result, const WidgetDataFile& file);
 
     bool shouldBeDownloaded(const RegularFile& file) const;
     bool shouldBeDownloaded(const ResourceFile& file) const;
+    bool shouldBeDownloaded(const WidgetDataFile& file) const;
 
     DownloadResult downloadRequiredFile(const ResourceFile& file);
     DownloadResult downloadRequiredFile(const RegularFile& file);
+    DownloadResult downloadRequiredFile(const WidgetDataFile& file);
     DownloadResult downloadHttpFile(const RegularFile& file);
     DownloadResult downloadXmdsFile(const RegularFile& file);
 

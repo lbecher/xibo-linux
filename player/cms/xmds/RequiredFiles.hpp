@@ -13,13 +13,16 @@ namespace RequiredFiles
     {
         const RequiredFilesSet<RegularFile>& requiredFiles() const;
         const RequiredFilesSet<ResourceFile>& requiredResources() const;
+        const RequiredFilesSet<WidgetDataFile>& requiredWidgetData() const;
 
         void addFile(RegularFile&& file);
         void addResource(ResourceFile&& resource);
+        void addWidgetData(WidgetDataFile&& widgetData);
 
     private:
         RequiredFilesSet<RegularFile> m_requiredFiles;
         RequiredFilesSet<ResourceFile> m_requiredResources;
+        RequiredFilesSet<WidgetDataFile> m_requiredWidgetData;
     };
 
     struct Request
@@ -49,6 +52,7 @@ protected:
 private:
     RegularFile parseRegularFile(const XmlNode& attrs);
     ResourceFile parseResourceFile(const XmlNode& attrs);
+    WidgetDataFile parseWidgetDataFile(const XmlNode& attrs);
     std::pair<std::string, std::string> parseFileNameAndPath(RegularFile::DownloadType dType,
                                                              std::string_view fType,
                                                              const XmlNode& attrs);
@@ -57,5 +61,6 @@ private:
     bool isMedia(std::string_view type) const;
     bool isDependency(std::string_view type) const;
     bool isResource(std::string_view type) const;
+    bool isWidgetData(std::string_view type) const;
     RegularFile::DownloadType toDownloadType(std::string_view type);
 };

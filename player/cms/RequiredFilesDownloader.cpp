@@ -33,9 +33,9 @@ bool RequiredFilesDownloader::onRegularFileDownloaded(const ResponseContentResul
         
         fileCache_.save(file.name(), fileContent, file.hash());
 
-        auto downloaded = fileCache_.cached(file);
-        Log::debug("[{}] Downloaded valid={}", file.name(), downloaded);
-        return downloaded;
+        auto valid = fileCache_.valid(file.name());
+        Log::debug("[{}] Downloaded valid={}", file.name(), valid);
+        return valid;
     }
     else
     {
@@ -58,6 +58,22 @@ bool RequiredFilesDownloader::onResourceFileDownloaded(const ResponseContentResu
     else
     {
         Log::error("[{}] Download error: {}", file.name(), error);
+        return false;
+    }
+}
+
+bool RequiredFilesDownloader::onWidgetDataDownloaded(const ResponseContentResult& result, const WidgetDataFile& file)
+{
+    auto [error, fileContent] = result;
+    if (!error)
+    {
+        Log::info("[RequiredFilesDownloader] Saving widget data: widgetId={}, name={}", file.widgetId(), file.name());
+        fileCache_.save(file.name(), fileContent, DateTime::nowUtc());
+        return true;
+    }
+    else
+    {
+        Log::error("[{}] Widget data download error: {}", file.name(), error);
         return false;
     }
 }
@@ -104,6 +120,18 @@ DownloadResult RequiredFilesDownloader::downloadRequiredFile(const RegularFile& 
     }
 }
 
+DownloadResult RequiredFilesDownloader::downloadRequiredFile(const WidgetDataFile& file)
+{
+    Log::info("[RequiredFilesDownloader] Downloading widget data via XMDS: widgetId={}, name={}",
+              file.widgetId(),
+              file.name());
+    return xmdsRequestSender_.getData(file.widgetId()).then([this, file](auto future) {
+        auto [error, result] = future.get();
+
+        return onWidgetDataDownloaded(ResponseContentResult{error, result.data}, file);
+    });
+}
+
 bool RequiredFilesDownloader::shouldBeDownloaded(const RegularFile& file) const
 {
     return !fileCache_.valid(file.name()) || !fileCache_.cached(file);
@@ -112,4 +140,9 @@ bool RequiredFilesDownloader::shouldBeDownloaded(const RegularFile& file) const
 bool RequiredFilesDownloader::shouldBeDownloaded(const ResourceFile& file) const
 {
     return !fileCache_.valid(file.name()) || !fileCache_.cached(file);
+}
+
+bool RequiredFilesDownloader::shouldBeDownloaded(const WidgetDataFile& file) const
+{
+    return !fileCache_.valid(file.name());
 }

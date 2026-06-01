@@ -92,6 +92,7 @@ namespace XmdsResources
         const std::string LayoutType = "layout";
         const std::string ResourceType = "resource";
         const std::string DependencyType = "dependency";
+        const std::string WidgetType = "widget";
 
         namespace RegularFile
         {
@@ -114,6 +115,18 @@ namespace XmdsResources
             const std::string MediaId = "mediaid";
             const std::string LastUpdate = "updated";
         }
+
+        namespace WidgetDataFile
+        {
+            const std::string Id = "id";
+            const std::string UpdateInterval = "updateInterval";
+        }
+    }
+
+    namespace GetData
+    {
+        const std::string_view Name = "GetData";
+        const std::string Data = "data";
     }
 
     namespace GetFile

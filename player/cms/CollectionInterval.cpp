@@ -99,6 +99,20 @@ void CollectionInterval::collectNow()
     }
 }
 
+void CollectionInterval::updateWidgetData(int widgetId)
+{
+    auto [error, result] = xmdsSender_.getData(widgetId).get();
+    if (error)
+    {
+        Log::error("[CollectionInterval] Widget data update failed for widgetId={}: {}", widgetId, error);
+        return;
+    }
+
+    WidgetDataFile widget{widgetId, 0};
+    fileCache_.save(widget.name(), result.data, DateTime::nowUtc());
+    Log::info("[CollectionInterval] Widget data update finished: widgetId={}, name={}", widgetId, widget.name());
+}
+
 void CollectionInterval::sessionFinished(const PlayerError& error)
 {
     running_ = false;
@@ -227,33 +241,41 @@ bool CollectionInterval::onRequiredFiles(const ResponseResult<RequiredFiles::Res
 
         auto&& files = result.requiredFiles();
         auto&& resources = result.requiredResources();
+        auto&& widgetData = result.requiredWidgetData();
 
-        status_.requiredFiles = files.size() + resources.size();
-        Log::info("[CollectionInterval] Required files received: regular={}, resources={}, total={}",
+        status_.requiredFiles = files.size() + resources.size() + widgetData.size();
+        Log::info("[CollectionInterval] Required files received: regular={}, resources={}, widgetData={}, total={}",
                   files.size(),
                   resources.size(),
+                  widgetData.size(),
                   status_.requiredFiles);
 
         auto resourcesResult = downloader.download(resources);
         auto filesResult = downloader.download(files);
+        auto widgetDataResult = downloader.download(widgetData);
 
         auto resourceDownloads = resourcesResult.get();
         auto fileDownloads = filesResult.get();
+        auto widgetDownloads = widgetDataResult.get();
 
         auto downloadedResources = countSuccessfulDownloads(resourceDownloads);
         auto downloadedFiles = countSuccessfulDownloads(fileDownloads);
+        auto downloadedWidgets = countSuccessfulDownloads(widgetDownloads);
 
-        Log::info("[CollectionInterval] Download batch finished: regular ok={}/{}, resources ok={}/{}",
+        Log::info("[CollectionInterval] Download batch finished: regular ok={}/{}, resources ok={}/{}, widgetData ok={}/{}",
                   downloadedFiles,
                   fileDownloads.size(),
                   downloadedResources,
-                  resourceDownloads.size());
+                  resourceDownloads.size(),
+                  downloadedWidgets,
+                  widgetDownloads.size());
 
         updateMediaInventory(result);
         Log::info("[CollectionInterval] Media inventory updated after downloads");
 
         MainLoop::pushToUiThread([this]() { filesDownloaded_(); });
-        return downloadedFiles == fileDownloads.size() && downloadedResources == resourceDownloads.size();
+        return downloadedFiles == fileDownloads.size()
+            && downloadedResources == resourceDownloads.size();
     }
     else
     {

@@ -76,8 +76,26 @@ private:
     DateTime lastUpdate_;
 };
 
+class WidgetDataFile
+{
+public:
+    WidgetDataFile(int widgetId, int updateInterval);
+
+    int widgetId() const;
+    int updateInterval() const;
+    std::string name() const;
+
+private:
+    friend std::ostream& operator<<(std::ostream& out, const WidgetDataFile& widget);
+
+private:
+    int widgetId_;
+    int updateInterval_;
+};
+
 std::ostream& operator<<(std::ostream& out, const RegularFile& file);
 std::ostream& operator<<(std::ostream& out, const ResourceFile& res);
+std::ostream& operator<<(std::ostream& out, const WidgetDataFile& widget);
 
 template <typename RequriedFile>
 using RequiredFilesSet = std::vector<RequriedFile>;
@@ -97,6 +115,15 @@ struct fmt::formatter<ResourceFile> : fmt::formatter<std::string> {
     auto format(const ResourceFile& res, format_context& ctx) const {
         std::ostringstream oss;
         oss << res;
+        return fmt::formatter<std::string>::format(oss.str(), ctx);
+    }
+};
+
+template<>
+struct fmt::formatter<WidgetDataFile> : fmt::formatter<std::string> {
+    auto format(const WidgetDataFile& widget, format_context& ctx) const {
+        std::ostringstream oss;
+        oss << widget;
         return fmt::formatter<std::string>::format(oss.str(), ctx);
     }
 };
