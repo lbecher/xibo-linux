@@ -24,10 +24,11 @@ private:
     void connectSignals();
 
     void onSaveSettingsClicked();
+    void onNetworkInterfaceChanged();
     std::string getDisplayId(const std::string& previousAutoDisplayId, bool networkInterfaceChanged);
     std::string connectToCms(const std::string& cmsAddress, const std::string& key, const std::string& displayId);
     void updateSettings();
-    void showSettingsSavedMessage();
+    void updateMacAddressField();
     void onBrowseResourcesPathClicked();
     std::string createDefaultResourceDir();
 
@@ -44,11 +45,10 @@ private:
 
     Gtk::Entry* usernameField_;
     Gtk::Entry* passwordField_;
-    Gtk::Entry* splashScreenPath_;
-    Gtk::Button* browseSplashScreenPath_;
     Gtk::Entry* domainField_;
     Gtk::Entry* displayIdField_;
     Gtk::ComboBoxText* networkInterfaceField_;
+    Gtk::Entry* macAddressField_;
 
     Gtk::Label* connectionStatus_;
     Gtk::Button* saveSettings_;

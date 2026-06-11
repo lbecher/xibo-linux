@@ -6,6 +6,7 @@
 #include "cms/xmds/XmdsRequestSender.hpp"
 #include "common/fs/FileSystem.hpp"
 #include "common/logger/Logging.hpp"
+#include "common/system/MacAddressFetcher.hpp"
 #include "common/system/NetworkInterface.hpp"
 #include "common/system/System.hpp"
 #include "config/AppConfig.hpp"
@@ -32,11 +33,10 @@ void MainWindowController::initUi()
 
     usernameField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::UsernameEntry);
     passwordField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::PasswordEntry);
-    splashScreenPath_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::SplashScreenPathEntry);
-    browseSplashScreenPath_ = ui_->get_widget<Gtk::Button>(Resources::Ui::BrowseSplashScreenButton);
     domainField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::DomainEntry);
     displayIdField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::DisplayIdEntry);
     networkInterfaceField_ = ui_->get_widget<Gtk::ComboBoxText>(Resources::Ui::NetworkInterfaceCombo);
+    macAddressField_ = ui_->get_widget<Gtk::Entry>(Resources::Ui::MacAddressEntry);
 
     connectionStatus_ = ui_->get_widget<Gtk::Label>(Resources::Ui::ConnectionStatusLabel);
     saveSettings_ = ui_->get_widget<Gtk::Button>(Resources::Ui::SaveButton);
@@ -56,6 +56,7 @@ void MainWindowController::updateControls(const CmsSettings& settings, const Pla
     domainField_->set_text(Glib::ustring{settings.domain()});
     displayIdField_->set_text(Glib::ustring{settings.displayId()});
     networkInterfaceField_->set_active_text(playerSettings.networkInterface().value());
+    updateMacAddressField();
 }
 
 void MainWindowController::initNetworkInterfaces(const std::string& selectedInterface)
@@ -77,6 +78,7 @@ void MainWindowController::initNetworkInterfaces(const std::string& selectedInte
 void MainWindowController::connectSignals()
 {
     saveSettings_->signal_clicked().connect(std::bind(&MainWindowController::onSaveSettingsClicked, this));
+    networkInterfaceField_->signal_changed().connect(std::bind(&MainWindowController::onNetworkInterfaceChanged, this));
     browseResourcesPath_->signal_clicked().connect(
         std::bind(&MainWindowController::onBrowseResourcesPathClicked, this));
     exit_->signal_clicked().connect(std::bind(&Gtk::Window::close, mainWindow_));
@@ -84,6 +86,8 @@ void MainWindowController::connectSignals()
 
 void MainWindowController::onSaveSettingsClicked()
 {
+    connectionStatus_->set_text("Saving settings and registering this display with the CMS...");
+
     auto previousAutoDisplayId = static_cast<std::string>(static_cast<Md5Hash>(System::hardwareKey()));
     auto selectedNetworkInterface = std::string{networkInterfaceField_->get_active_text()};
     bool networkInterfaceChanged = selectedNetworkInterface != playerSettings_.networkInterface().value();
@@ -94,10 +98,16 @@ void MainWindowController::onSaveSettingsClicked()
     auto displayId = getDisplayId(previousAutoDisplayId, networkInterfaceChanged);
     auto connectionResult = connectToCms(cmsAddressField_->get_text(), keyField_->get_text(), displayId);
 
-    connectionStatus_->set_text(connectionResult);
     displayIdField_->set_text(displayId);
 
     updateSettings();
+    updateMacAddressField();
+    connectionStatus_->set_text("Settings saved. CMS response: " + connectionResult);
+}
+
+void MainWindowController::onNetworkInterfaceChanged()
+{
+    updateMacAddressField();
 }
 
 std::string MainWindowController::getDisplayId(const std::string& previousAutoDisplayId, bool networkInterfaceChanged)
@@ -121,7 +131,6 @@ std::string MainWindowController::connectToCms(const std::string& cmsAddress,
     {
         XmdsRequestSender xmdsRequester{cmsAddress, key, displayId};
 
-                
         auto connectionResult =
             xmdsRequester
                 .registerDisplay(std::stoi(AppConfig::codeVersion()), AppConfig::releaseVersion(), playerSettings_.displayName())
@@ -156,6 +165,13 @@ void MainWindowController::updateSettings()
 
     playerSettings_.networkInterface().setValue(networkInterfaceField_->get_active_text());
     playerSettings_.saveTo(AppConfig::playerSettingsPath());
+}
+
+void MainWindowController::updateMacAddressField()
+{
+    auto selectedNetworkInterface = std::string{networkInterfaceField_->get_active_text()};
+    auto macAddress = static_cast<std::string>(MacAddressFetcher::fetch(selectedNetworkInterface));
+    macAddressField_->set_text(Glib::ustring{macAddress});
 }
 
 std::string MainWindowController::createDefaultResourceDir()

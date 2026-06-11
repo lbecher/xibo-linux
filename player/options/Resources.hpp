@@ -14,11 +14,10 @@ namespace Resources
         const std::string BrowseResourcesButton = "browseResourcesBtn";
         const std::string UsernameEntry = "usernameEntry";
         const std::string PasswordEntry = "passwordEntry";
-        const std::string SplashScreenPathEntry = "splashScreenPathEntry";
-        const std::string BrowseSplashScreenButton = "browseSplashScreenBtn";
         const std::string DomainEntry = "domainEntry";
         const std::string DisplayIdEntry = "displayIdEntry";
         const std::string NetworkInterfaceCombo = "networkInterfaceCombo";
+        const std::string MacAddressEntry = "macAddressEntry";
         const std::string ConnectionStatusLabel = "statusLabel";
         const std::string SaveButton = "saveBtn";
         const std::string LaunchClientButton = "launchClientBtn";
